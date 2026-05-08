@@ -1,0 +1,611 @@
+---
+title: "Unsupervised Learning | Clustering Validation"
+author: "Dinda Dwi Anugrah Pertiwi"
+date: 
+output:
+  html_document:
+    theme: spacelab
+    highlight: pygments
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: false
+    code_folding: hide
+    df_print: paged
+    css: styles.css
+    self_contained: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{=html}
+<style>
+
+/* ===== GLOBAL ===== */
+body {
+  line-height: 1.7;
+  font-size: 16px;
+  background-color: #EEF3F8;
+}
+
+/* ===== JUDUL ===== */
+h1 {
+  color: #2C3E50;
+  border-bottom: 4px solid #1ABC9C;
+  padding-bottom: 8px;
+  margin-top: 20px;
+}
+
+h2 {
+  color: #1ABC9C;
+  margin-top: 30px;
+}
+
+h3 {
+  color: #34495E;
+}
+
+/* ===== CARD EFFECT SECTION ===== */
+.section {
+  background: #ffffff;
+  padding: 20px;
+  margin-bottom: 25px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.section:hover {
+  transform: translateY(-3px);
+}
+
+/* ===== CODE BLOCK ===== */
+pre {
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ===== INLINE CODE ===== */
+code {
+  background-color: #ecf0f1;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+/* ===== TABLE ===== */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 15px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+table th {
+  background-color: #1ABC9C;
+  color: white;
+  text-align: center;
+}
+
+table td, table th {
+  padding: 10px;
+  text-align: center;
+}
+
+/* ===== BOX INTERPRETASI ===== */
+.interpretasi {
+  background-color: #E8F8F5;
+  padding: 15px;
+  border-left: 6px solid #1ABC9C;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+/* ===== BOX CATATAN ===== */
+.catatan {
+  background-color: #FEF9E7;
+  padding: 15px;
+  border-left: 6px solid #4A90E2;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+/* ===== TOC (DAFTAR ISI) ===== */
+#TOC {
+  background: #EAF2FB;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+/* ===== LINK ===== */
+a {
+  color: #16A085;
+  font-weight: 500;
+}
+
+a:hover {
+  color: #138D75;
+  text-decoration: none;
+}
+
+</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+# Pendahuluan
+
+## Clustering
+
+Clustering merupakan salah satau metode *machine learning* dan termasuk
+dalam *unsupervised learning*. Unsupervised learning adalah metode
+machine learning dimana dalam data yang akan dianalisis tidak terdapat
+target variabel (label). Dalam unsupervised learning tujuannya lebih
+fokus dalam melakukan eksplorasi data seperti mencari atau
+mengelompokkan data berdasarkan kemiripan tanpa adanya label (ground
+truth). Dalam menentukan cluster yang baik adalah ketika suatu anggota
+dalam cluster memiliki kemiripan semirip mungkin sedangkan antar anggota
+cluster memiliki perbedaan yang cukup signifikan. Hal ini menyebabkan
+evaluasi hasil clustering menjadi tidak langsung dan membutuhkan
+pendekatan khusus yang disebut **cluster validation**.
+
+Misalkan dataset $$
+X = \{x_1, x_2, ..., x_n\},
+$$ maka clustering bertujuan membagi data ke dalam $$
+( k)cluster( C_1, ..., C_k).
+$$
+
+Dalam clustering ada dua jenis yaitu 1. non fuzzy clustering (hard
+clustering), setiap data akan dibagi menjadi dalam beberapa kelompok dan
+setiap data poin hanya dapat dimiliki dalam 1 cluster saja. 2. fuzzy
+clustering (soft clusterig), setiap data poin memiliki kesempatan untuk
+dimiliki oleh lebih dari 1 cluster.
+
+# Validasi Cluster
+
+Karena suatu clustering sangat sulit untuk bisa kita tentukan keakuratan
+dari cluster yang kita bentuk. Oleh karena itu perlu dilakukan validasi
+cluster (cluster validation).
+
+Validasi cluster adalah proses untuk mengevaluasi kualitas hasil
+clustering secara kuantitatif dengan menggunakan indeks tertentu. Tujuan
+utama dari validasi cluster/cluster validation adalah
+
+-   Mengukur kualitas hasil clustering
+-   Membandingkan model
+-   Menentukan jumlah cluster optimal
+
+Menurut Charred et al. validasi cluster dibedakan menjadi 3 jenis yaitu:
+
+1.  Internal cluster validation
+2.  External cluster validation
+3.  Relative cluster validation
+
+# Internal cluster validation 
+
+## Pengertian
+
+Internal cluster validation menggunakan informasi internal pada data
+untuk melakukan evaluasi cluster yang baik dan tepat tanpa menggunakan
+informasi eksternal data. Biasanya yang diukur pada validasi cluster ini
+adalah tingkat kepadatan (compactness), keterhubungan (connectedness),
+dan separasi yang ada pada cluster.
+
+-   compactness mengukur seberapa dekat suatu objek pada cluster yang
+    sama. Biasanya dilihat dari nilai within-cluster variation yang
+    kecil atau rata-rata jarak antar cluster.
+-   connectivity berhubungan dengan sejauh mana suatu data poin
+    dikelompokkan menjadi satu cluster dengan tetangga terdekatnya
+    (nearest neighbor).
+-   separation mengukur seberapa baik pemisah antar satu cluster dengan
+    cluster yang lain. Biasanya dapat diukur berdasarkan jarak antar
+    pusat cluster.
+
+## Tujuan
+
+-   Memastikan cluster kompak
+-   Memastikan cluster saling terpisah
+
+## Formula Matematis
+
+### Cohesion
+
+$$
+W = \sum_{i=1}^{k} \sum_{x \in C_i} ||x - \mu_i||^2
+$$
+
+### Separation
+
+$$
+B = \sum_{i=1}^{k} n_i ||\mu_i - \mu||^2
+$$
+
+## Jenis jenis
+
+### Silhouette Coefficient
+
+Silhouette mengukur seberapa baik suatu observasi menjadi satu cluster
+atau memperkirakan nilai rata-rata jarak antar cluster. Nilai dari
+silhouette coefficient menginterpretasikan seberapa dekat suatu data
+pada satu cluster terhadap tetangga pada cluster yang lain. Semakin
+besar nilai silhouette (mendekati 1), maka semakin baik cluster
+tersebut.
+
+### Formula
+
+$$
+s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}
+$$
+
+### Parameter
+
+$$
+a(i): within distance  
+$$ $$
+b(i): nearest cluster distance 
+$$
+
+### Interpretasi
+
+-   Mendekati 1 → baik\
+-   Mendekati 0 → overlap\
+-   Negatif → salah cluster
+
+### Implementasi
+
+```{r}
+library(cluster)
+library(factoextra)
+
+data(iris)
+x <- scale(iris[, -5])
+
+set.seed(123)
+km <- kmeans(x, centers = 3)
+
+sil <- silhouette(km$cluster, dist(x))
+fviz_silhouette(sil)
+```
+
+Interpretasi:
+
+Nilai average silhouette sebesar 0.46 menunjukkan bahwa kualitas
+clustering berada pada kategori cukup baik, namun belum optimal karena
+masih terdapat overlap antar cluster. Cluster 1 memiliki nilai tertinggi
+(0.64) sehingga merupakan cluster paling baik dengan pemisahan yang
+jelas, sedangkan cluster 2 (0.35) dan cluster 3 (0.39) menunjukkan
+kualitas sedang dengan kemungkinan adanya kedekatan antar cluster.
+Secara keseluruhan, model sudah mampu menangkap struktur data, tetapi
+masih bisa ditingkatkan.
+
+### Davies-Bouldin Index
+
+Davies-Bouldin Index (DBI) merupakan indeks internal yang mengukur
+rata-rata kemiripan antara setiap cluster dengan cluster lainnya.
+Kemiripan ini dihitung berdasarkan rasio antara dispersi dalam cluster
+dan jarak antar cluster.
+
+### Formula
+
+$$
+DBI = \frac{1}{k} \sum_{i=1}^{k} \max_{j \neq i} \left( \frac{S_i + S_j}{M_{ij}} \right)
+$$
+
+### Parameter
+
+$$
+S_i : rata-rata jarak dalam cluster ke-i
+$$
+
+$$
+M_{ij}: jarak antara centroid cluster i dan j
+$$
+
+$$
+k: jumlah cluster
+$$
+
+### Interpretasi 
+
+\- Nilai kecil → cluster lebih baik
+
+\- Nilai besar → cluster overlap
+
+### Implementasi
+
+```{r}
+library(clusterSim)
+
+dbi <- index.DB(x, km$cluster)
+dbi$DB
+```
+
+Interpretasi:
+
+Nilai Davies-Bouldin Index (DBI) sebesar 0.914 menunjukkan bahwa
+kualitas clustering cukup baik. Hal ini karena DBI yang lebih kecil
+mengindikasikan cluster yang lebih kompak dan memiliki pemisahan yang
+lebih jelas antar cluster. Nilai yang mendekati 0 menunjukkan hasil yang
+semakin optimal, sehingga nilai 0.914 masih tergolong baik, meskipun
+belum optimal sepenuhnya. Artinya, cluster sudah terbentuk dengan cukup
+jelas, namun masih terdapat sedikit overlap antar cluster yang bisa
+diperbaiki dengan pemilihan jumlah cluster atau metode clustering yang
+lebih sesuai.
+
+### Dunn Index
+
+Dunn index menilai seberapa rapat anggota dalam suatu cluster dengan
+variansi yang kecil dan seberapa terpisah cluster yang satu dengan yang
+lainnya. Cluster yang baik adalah yang memiliki nilai dunn index besar.
+
+### Formula
+
+$$
+Dunn = \frac{\min_{i \neq j} d(C_i, C_j)}{\max_k diam(C_k)}
+$$
+
+### Parameter
+
+$$
+d(C_i, C_j): jarak antar cluster
+$$
+
+$$
+diam(C_k): diameter cluster k
+$$
+
+### Interpretasi
+
+-   Nilai besar → cluster baik
+-   Nilai kecil → cluster tidak terpisah dengan baik
+
+### Implementasi
+
+```{r}
+library(clValid)
+
+dunn_index <- dunn(dist(x), km$cluster)
+print(dunn_index)
+```
+
+Interpretasi:
+
+Nilai Dunn Index sebesar 0.0265 menunjukkan bahwa kualitas clustering
+kurang baik. Hal ini karena nilai Dunn Index yang baik seharusnya
+tinggi, yang menandakan jarak antar cluster besar (separation tinggi)
+dan ukuran cluster kecil (cohesion tinggi). Sebaliknya, nilai yang
+sangat kecil seperti ini mengindikasikan bahwa jarak antar cluster
+relatif dekat atau terdapat cluster yang memiliki diameter besar,
+sehingga terjadi overlap antar cluster. Dengan demikian, hasil
+clustering masih belum optimal dan dapat diperbaiki, misalnya dengan
+mencoba jumlah cluster yang berbeda atau metode clustering lain.
+
+# EXTERNAL VALIDATION
+
+## Pengertian
+
+Validasi cluster ini menggunakan informasi eksternal pada suatu data
+seperti label kelas atau kelas target yang disediakan dari sumber
+eksternal. Hal ini biasanya digunakan untuk mengukur kecocokan label
+suatu cluster yang terbentuk dengan label kelas yang ada.
+
+## Tujuan
+
+-   mengukur seberapa sesuai hasil clustering dengan label asli (ground
+    truth)
+
+## Jenis
+
+### Adjusted Rand Index (ARI)
+
+Adjusted Rand Index (ARI) mengukur kesamaan antara hasil clustering
+dengan label sebenarnya dengan mempertimbangkan kemungkinan kesamaan
+secara acak.
+
+### Formula
+
+$$
+ARI = \frac{RI - Expected}{Max - Expected}
+$$
+
+### Parameter
+
+RI: Rand Index Expected: nilai ekspektasi acak
+
+### Interpretasi
+
+-   1 → clustering sempurna
+-   0 → acak
+-   \< 0 → buruk
+
+### Implementasi
+
+```{r}
+library(mclust)
+
+ari <- adjustedRandIndex(km$cluster, iris$Species)
+print(ari)
+```
+
+Interpretasi:
+
+Nilai Adjusted Rand Index (ARI) sebesar 0.620 menunjukkan bahwa hasil
+clustering memiliki tingkat kesesuaian yang cukup tinggi dengan label
+asli (ground truth). Karena nilai ARI berada di atas 0.5, ini menandakan
+bahwa struktur cluster yang dihasilkan sudah mampu merepresentasikan
+pola sebenarnya dalam data dengan baik. Namun, karena belum mendekati 1,
+masih terdapat beberapa perbedaan antara hasil clustering dan label
+asli, yang mengindikasikan adanya kesalahan pengelompokan pada sebagian
+data. Secara keseluruhan, model clustering dapat dikatakan baik tetapi
+belum sempurna.
+
+### Normalized Mutual Information (NMI)
+
+Normalized Mutual Information (NMI) mengukur tingkat informasi bersama
+antara hasil clustering dan label sebenarnya.
+
+### Formula
+
+$$
+NMI = \frac{2I(X,Y)}{H(X)+H(Y)}
+$$
+
+### Parameter
+
+$$
+I(X,Y) : mutual information
+$$
+
+$$
+H(X), H(Y) : entropy
+$$
+
+### Interpretasi
+
+-   1 → sempurna
+-   0 → tidak ada hubungan
+
+### Implementasi
+
+```{r}
+library(aricode)
+
+nmi <- NMI(km$cluster, iris$Species)
+print(nmi)
+```
+
+Interpretasi:
+
+Nilai Normalized Mutual Information (NMI) sebesar 0.659 menunjukkan
+bahwa hasil clustering memiliki tingkat kesesuaian yang cukup tinggi
+dengan label asli. Karena nilai NMI berada di atas 0.6, hal ini
+mengindikasikan bahwa terdapat kesamaan informasi yang cukup kuat antara
+struktur cluster yang dihasilkan dengan distribusi label sebenarnya.
+Namun, karena nilainya belum mendekati 1, masih terdapat sebagian
+informasi yang tidak sepenuhnya sesuai, yang berarti masih ada beberapa
+data yang tidak terkelompok dengan sempurna. Secara keseluruhan, hasil
+clustering dapat dikatakan baik, tetapi belum optimal dan masih dapat
+ditingkatkan.
+
+# RELATIVE VALIDATION 
+
+## Pengertian 
+
+Validasi cluster ini menggunakan pendekatan dengan memberikan beberapa
+variasi nilai parameter yang berbeda seperti banyaknya jumlah cluster
+(k) pada satu metode yang sama. Biasanya cara ini digunakan untuk
+menentukan banyak cluster yang paling optimal.
+
+## Tujuan
+
+-   Menentukan jumlah cluster optimal (k optimal)
+-   Membandingkan performa beberapa model
+-   Menghindari pemilihan model yang subjektif
+
+## Jenis
+
+### Elbow Method
+
+Elbow Method digunakan untuk menentukan jumlah cluster optimal
+berdasarkan nilai WCSS.
+
+### Formula
+
+$$
+WCSS = \sum_{i=1}^{k} \sum_{x \in C_i} ||x - \mu_i||^2
+$$
+
+### Interpretasi
+
+-   Titik siku (elbow) menunjukkan jumlah cluster optimal
+
+### Implementasi
+
+```{r}
+fviz_nbclust(x, kmeans, method = "wss")
+```
+
+Interpretasi:
+
+Nilai WCSS (Within Cluster Sum of Squares) mengalami penurunan yang
+sangat tajam dari k = 1 ke k = 3, kemudian setelah itu penurunannya
+mulai melambat. Hal ini menunjukkan bahwa penambahan jumlah cluster
+setelah k = 3 tidak memberikan peningkatan yang signifikan dalam
+mengurangi variasi dalam cluster.
+
+Berdasarkan metode Elbow, titik “siku” terlihat berada di sekitar k = 3,
+sehingga jumlah cluster optimal yang disarankan adalah 3 cluster. Ini
+berarti pembagian data menjadi 3 kelompok sudah cukup baik dalam
+merepresentasikan struktur data tanpa menambah kompleksitas yang tidak
+perlu.
+
+### Gap Statistic
+
+Gap Statistic membandingkan hasil clustering dengan data acak untuk
+menentukan jumlah cluster optimal.
+
+### Formula
+
+$$
+Gap(k) = E^*(\log(W_k)) - \log(W_k)
+$$
+
+### Interpretasi 
+
+\- Nilai gap terbesar → jumlah cluster optimal
+
+### Implementasi
+
+```{r}
+set.seed(123)
+gap <- clusGap(x, FUN = kmeans, K.max = 10, B = 50)
+fviz_gap_stat(gap)
+```
+
+Interpretasi:
+
+Nilai Gap Statistic menunjukkan peningkatan yang cukup signifikan dari k
+= 1 ke k = 2, dan mencapai nilai tinggi di sekitar k = 2 hingga k = 3.
+Berdasarkan aturan Gap Statistic (memilih k pertama yang memenuhi
+kondisi optimal), garis putus-putus pada grafik menunjukkan bahwa jumlah
+cluster optimal berada pada k = 2.
+
+Hal ini berarti bahwa pembagian data menjadi 2 cluster sudah cukup baik
+dalam merepresentasikan struktur data dibandingkan dengan jumlah cluster
+lainnya. Meskipun nilai gap pada k = 3 sedikit lebih tinggi, metode ini
+cenderung memilih jumlah cluster yang lebih sederhana jika perbedaannya
+tidak signifikan.
+
+Secara keseluruhan, berdasarkan Gap Statistic, jumlah cluster optimal
+yang disarankan adalah 2 cluster.
+
+# Kesimpulan
+
+Berdasarkan hasil evaluasi menggunakan berbagai metode validasi, dapat disimpulkan bahwa model clustering sudah mampu menangkap struktur data dengan cukup baik. 
+
+Internal validation menunjukkan bahwa kualitas cluster berada pada kategori cukup baik, meskipun masih terdapat overlap antar cluster. External validation memperlihatkan bahwa hasil clustering memiliki kesesuaian yang cukup tinggi dengan label asli, namun belum sempurna. Sementara itu, relative validation menunjukkan bahwa jumlah cluster optimal berada pada kisaran 2 hingga 3 cluster.
+
+Dengan demikian, model clustering dapat dikatakan baik, tetapi masih dapat ditingkatkan untuk memperoleh hasil yang lebih optimal.
+
+# Perbandingan
+
+| Aspek | Internal | External | Relative |
+|------|--------|---------|----------|
+| Data Label | Tidak | Ya | Tidak |
+| Tujuan | Struktur cluster | Kesesuaian label | Pemilihan model |
+| Fokus | Cohesion & Separation | Akurasi | Optimasi k |
+| Contoh | Silhouette, DBI, Dunn | ARI, NMI | Elbow, Gap |
+
