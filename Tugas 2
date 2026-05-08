@@ -1,0 +1,370 @@
+---
+title: "Tugas Unsupervised Learning"
+author: "Dinda Dwi Anugrah Pertiwi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: united
+    highlight: haddock
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: false
+    code_folding: hide
+    df_print: paged
+    css: styles.css
+    self_contained: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+# HIERARCHICAL VS PARTITIONING ALGORITHM
+
+# Hierarchical Algorithm
+
+Algoritma pengelompokan hierarkis adalah proses yang tidak dapat dibalik
+yang mengulangi siklus penggabungan semua objek ke dalam sebuah kluster
+atau pemisahan kluster objek menjadi objek individu.
+
+Pengelompokan hierarkis pada dasarnya adalah teknik pengelompokan tanpa
+pengawasan (*unsupervised*) yang melibatkan pembentukan kluster dalam
+urutan yang telah ditentukan sebelumnya. Kluster-kluster tersebut
+diurutkan secara hierarkis dari atas ke bawah.
+
+## Kelebihan
+
+-   Tidak Perlu Menentukan Jumlah Klaster (K) di Awal
+-   Visualisasi (Dendogram)
+-   Struktur Bertingkat
+-   Fleksibilitas Metrik Jarak dan Linkage
+
+## Kekurangan
+
+-   Komputasi Mahal
+-   Keputusan Penggabungan/Pembagian Bersifat Final
+-   Tidak Ada Koreksi Kesalahan
+-   Sulit Ditentukan Jumlah Kluster Optimal
+-   Sensitivitas Terhadap Noise dan Outlier
+-   Kurang Praktis untuk Data Sangat Besar
+
+## Jenis
+
+Dalam jenis pengelompokan ini, kluster-kluster yang serupa digabungkan
+dan disusun secara hierarkis. Teknik ini dapat dibagi menjadi dua jenis,
+yaitu:
+
+### Aglomerative
+
+Pendekatan aglomeratif dimulai dengan setiap pengamatan berada dalam
+kluster terpisah (*singleton*), dan secara bertahap menggabungkan
+kluster-kluster tersebut hingga kriteria penghentian terpenuhi.
+Pendekatan ini adalah pendekatan yang paling sering digunakan.
+
+Proses Agglomerative:
+
+-   Inisialisasi: Setiap objek (titik data) dimulai sebagai klasternya
+    sendiri (jadi, jika Anda punya N objek, Anda mulai dengan N
+    klaster).
+
+-   Hitung Jarak: Hitung matriks jarak (menggunakan metrik seperti
+    Euclidean, Manhattan, Gower, dll.) antara semua pasangan
+    objek/klaster.
+
+-   Gabung (*Merge*): Temukan dua klaster yang paling dekat (paling
+    mirip) berdasarkan matriks jarak. Gabungkan kedua klaster ini
+    menjadi satu klaster baru.
+
+-   Perbarui Jarak: Hitung ulang matriks jarak, sekarang dengan
+    menyertakan klaster baru. Di sinilah metode linkage berperan untuk
+    menentukan jarak antara klaster baru ini dengan klaster lainnya.
+
+-   Ulangi: Ulangi langkah 3 dan 4 sampai semua objek tergabung dalam
+    satu klaster besar.
+
+### Contoh Agglomerative
+
+```{r}
+#data
+data_iris <- iris[,1:4]
+
+#menghitung jarak antar data
+dist_iris <- dist(data_iris)
+
+#hierarchical clustering (agglomerative)
+hie <- hclust(dist_iris, method = "ward.D2")
+
+#dendogram
+plot(hie, main = "Hierarchical Clustering Dendogram Iris",
+     xlab = "",
+     sub = "",
+     cex = 0.6)
+
+#memotong dendogram menjadi 3 kluster
+kluster <- cutree(hie, k = 3)
+table(kluster)
+
+#visualisasi cluster
+plot(data_iris[,1:2], col=kluster, pch=19,
+     main="Hasil Cluster (Agglomerative)")
+```
+
+### Divisive
+
+Metode divisive dimulai dengan semua pola berada dalam satu kluster dan
+melakukan pembagian hingga kriteria penghentian terpenuhi (bekerja
+secara berlawanan).
+
+Proses Divisive:
+
+-   Inisialisasi: Semua objek dimulai sebagai satu klaster besar
+    tunggal.
+
+-   Bagi (Split): Pada setiap langkah, klaster yang ada dipilih dan
+    dibagi menjadi dua sub-klaster yang paling "berbeda" atau
+    "heterogen".
+
+-   Ulangi: Proses pembagian ini diulangi sampai setiap objek berada
+    dalam klasternya sendiri, atau sampai kriteria penghentian tertentu
+    terpenuhi (misalnya, jumlah klaster yang diinginkan).
+
+Pendekatan:
+
+-   Berbasis Keterpisahan: Mencari cara membagi klaster sehingga jarak
+    antar dua sub-klaster baru menjadi maksimal.
+
+-   Berbasis Kohesi: Mencari cara membagi sehingga dalam setiap
+    sub-klaster baru, objek-objeknya se-homogen mungkin.
+
+-   Algoritma DIANA (*DIvisive ANAlysis*): Salah satu algoritma divisif
+    yang lebih dikenal. Ia bekerja dengan mencari objek dalam sebuah
+    klaster yang paling tidak mirip dengan objek lain, lalu memulai
+    sub-klaster baru dengannya dan memindahkan objek lain yang lebih
+    dekat ke sub-klaster baru tersebut.
+
+### Contoh Divisive
+
+```{r}
+#package
+library(cluster)
+
+#data
+data_iris <- iris[,1:4]
+
+#divisive hierarchical
+divs <- diana(data_iris)
+
+#dendogram
+plot(divs, main = "Divisive HIerarchichal Clustering")
+```
+
+## Perbandingan
+
+![](images/agl%20vs%20dvs.png)
+
+![](images/ag%20vs%20dv.png)
+
+| Metode | Cara Kerja |
+|------------------------------------|------------------------------------|
+| Agglomerative | menggabungkan kluster kecil menjadi kluster besar (*bottom-up*) |
+| Divisive | memecah kluster besar menjadi kluster kecil (*top-down*) |
+
+# Partitioning Algorithm
+
+algoritma clustering partisi menghasilkan partisi yang beragam, yang
+dievaluasi berdasarkan kriteria yang telah ditentukan, misalnya dengan
+meminimalkan jarak antara objek dan pusat kluster. Algoritma ini
+menugaskan objek ke pusat yang paling dekat yang telah ditentukan
+sebelumnya dan memperkirakan ulang pusat-pusat tersebut berdasarkan
+anggota saat ini. Proses ini diulang hingga konvergensi. Pilihan populer
+untuk algoritma partisi adalah k-means dan partisi sekitar medoid
+(Hastie dkk., 2009; Leisch, 2006).
+
+## Kelebihan
+
+-   Algoritma sederhana
+-   Efisien untuk dataset besar
+-   Mudah diimplementasikan secara komputasi
+-   Output mudah diinterpretasikan
+
+## Kekurangan
+
+-   Jumlah kluster harus ditentukan di awal
+-   Hasilnya sensitif terhadap pemilihan sentroid awal
+-   Kurang efektif untuk data dengan bentuk kluster kompleks
+-   Sensitif terhadap outlier
+
+## Jenis
+
+Pada partitioning clustering jenisnya biasanya dibedakan berdasarkan
+algoritmanya, bukan cara pembentukannya, jenis yang paling umum dari
+partitioning adalah:
+
+### K-Means
+
+Metode yang membagi data ke dalam K cluster berdasarkan rata-rata
+(*mean*) dari setiap cluster.
+
+Proses Kmeans:
+
+-   Inisialisasi (menentukan jumlah K, menentukan sentroid awal)
+
+-   Iterasi (langkah penugasan, langkah pembaruan)
+
+-   Kondisi Berhenti (ulangi langkah 2 sampai salah satu kondisi
+    terpenuhi (konvergensi, sentroid stabil, jumlah iterasi max))
+
+### Contoh K-Means
+
+```{r}
+#data
+data_iris <- iris[,1:4]
+
+#kmeans
+set.seed(010)
+kmeans_iris <- kmeans(data_iris, centers = 3)
+kmeans_iris$cluster
+
+#package
+library(factoextra)
+
+#visualisasi
+fviz_cluster(kmeans_iris, data = data_iris)
+```
+
+### K-Medoids
+
+Mirip dengan K-Means tetapi pusat cluster adalah data asli (*medoid*),
+bukan rata-rata.
+
+Proses Kmedoids:
+
+-   Inisialisasi (pilih K, pilih medoid awal)
+
+-   Langkah penugasan (hitung jaraknya ke setiap K, tugaskan objek ke
+    kluster terdekat)
+
+-   Langkah Pembaruan (mengganti medoid dengan non medoid)
+
+-   Lakukan pengulangan sampai tidak ada perubahan
+
+### Contoh K-Medoids
+
+```{r}
+#package
+library(cluster)
+library(factoextra)
+
+#data
+data_iris <- iris[,1:4]
+
+#kmedoids pam
+model_pam <- pam(data_iris, k = 3)
+model_pam$clustering
+
+#visualisasi
+fviz_cluster(model_pam, data = data_iris)
+```
+
+### DBSCAN
+
+DBSCAN (*Density-Based Spatial Clustering of Applications with Noise*)
+adalah algoritma clustering berbasis kepadatan data (*density*). Metode
+ini mengelompokkan data berdasarkan kepadatan titik dalam suatu area.
+
+Proses DBSCAN:
+
+-   Pemilihan parameter (menentukan nilai eps dan MinPts)
+
+-   Inisialisasi (tandai semua titik sebagai *unvisited*)
+
+-   Iterasi : mulai dari titik acak yang belum dikunjungi (tandai, cek
+    lingkungan, evaluasi kepadatan)
+
+-   Ekspansi kluster
+
+-   Ulangi (kembali ke langkah 3)
+
+### Contoh DBSCAN
+
+```{r}
+#package
+library(dbscan)
+library(factoextra)
+
+#data
+data_iris <- iris[,1:4]
+
+#dbscan
+db_model <- dbscan(data_iris, eps = 0.5, minPts = 5)
+
+#visualisasi
+fviz_cluster(db_model, data = data_iris)
+```
+
+### CLARA
+
+CLARA adalah pengembangan dari K-Medoids yang dirancang untuk dataset
+besar.
+
+Proses CLARA:
+
+-   Inisialisasi (set minimum cost ke nilai yang paling besar)
+
+-   Loop pengambilan sampel : ulangi sebanyak S (ambil sampel, jalankan
+    PAM, hitung biaya, bandingkan dan simpan)
+
+-   Output
+
+-   Penugasan akhir (tugaskan setiap objek dalam dataset ke medoid
+    terdekat)
+
+### Contoh CLARA
+
+```{r}
+#package
+library(cluster)
+library(factoextra)
+
+#data
+data_iris <- iris[,1:4]
+
+#clara
+cla_model <- clara(data_iris, k = 3)
+cla_model$clustering
+
+#visualisasi
+fviz_cluster(cla_model, data = data_iris)
+```
+
+| Algoritma | Karakteristik                                            |
+|-----------|----------------------------------------------------------|
+| K-Means   | cepat, tetapi sensitif terhadap outlier                  |
+| K-Medoids | lebih robust terhadap outlier                            |
+| DBSCAN    | bisa menemukan kluster bentuk bebas dan mendeteksi noise |
+| CLARA     | cocok untuk dataset yang sangat besar                    |
+
+# Hierarchical Vs Partitioning
+
+| Aspek | Hierarchical | Partitioning |
+|------------------------|------------------------|------------------------|
+| Konsep dasar | Membentuk struktur kluster secara bertahap | Membagi data langsung menjadi beberapa kluster |
+| Pendekatan | Bertahap (bottom - up atau top - down) | Iteratif berdasarkan pusat kluster |
+| Penentuan jumlah kluster | Tidak harus idtentukan di awal | harus ditentukan di awal (nilai K) |
+| struktur hasil | Menghasilkan dendogram | Tidak menghasilkan dendogram |
+| Kompleksitas komputasi | Lebih tinggi | Lebih efisien untuk dataset besar |
+| Sensitivitas terhadapat outlier | Relatif lebih stabil | Beberapa metode sensitif terhadap outlier |
+| Fleksibilitas bentuk kluster | Dapat menemukan struktur data | Biasanya cocok untuk kluster berbentuk bulat |
+| algoritma | Agglomerative, Divisive | K-Means, K-Medoids, DBSCAN\< CLARA |
+
+![](images/Screenshot%202026-03-10%20110449.png)
