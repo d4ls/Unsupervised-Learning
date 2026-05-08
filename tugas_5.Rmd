@@ -1,0 +1,1103 @@
+---
+title: "Tugas Unsupervised Learning"
+author: "Dinda Dwi Anugrah Pertiwi"
+date: 
+output:
+  html_document:
+    theme: spacelab
+    highlight: pygments
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: false
+    code_folding: hide
+    df_print: paged
+    css: styles.css
+    self_contained: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{=html}
+<style>
+
+/* ===== GLOBAL ===== */
+body {
+  line-height: 1.7;
+  font-size: 16px;
+  background-color: #EEF3F8;
+}
+
+/* ===== JUDUL ===== */
+h1 {
+  color: #2C3E50;
+  border-bottom: 4px solid #1ABC9C;
+  padding-bottom: 8px;
+  margin-top: 20px;
+}
+
+h2 {
+  color: #1ABC9C;
+  margin-top: 30px;
+}
+
+h3 {
+  color: #34495E;
+}
+
+/* ===== CARD EFFECT SECTION ===== */
+.section {
+  background: #ffffff;
+  padding: 20px;
+  margin-bottom: 25px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.section:hover {
+  transform: translateY(-3px);
+}
+
+/* ===== CODE BLOCK ===== */
+pre {
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ===== INLINE CODE ===== */
+code {
+  background-color: #ecf0f1;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+/* ===== TABLE ===== */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 15px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+table th {
+  background-color: #1ABC9C;
+  color: white;
+  text-align: center;
+}
+
+table td, table th {
+  padding: 10px;
+  text-align: center;
+}
+
+/* ===== BOX INTERPRETASI ===== */
+.interpretasi {
+  background-color: #E8F8F5;
+  padding: 15px;
+  border-left: 6px solid #1ABC9C;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+/* ===== BOX CATATAN ===== */
+.catatan {
+  background-color: #FEF9E7;
+  padding: 15px;
+  border-left: 6px solid #4A90E2;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+/* ===== TOC (DAFTAR ISI) ===== */
+#TOC {
+  background: #EAF2FB;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+/* ===== LINK ===== */
+a {
+  color: #16A085;
+  font-weight: 500;
+}
+
+a:hover {
+  color: #138D75;
+  text-decoration: none;
+}
+
+</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+# Data
+
+![](images/Screenshot%202026-04-08%20095822.png)
+
+[Sumber
+data](https://archive.ics.uci.edu/dataset/292/wholesale+customers)
+
+Data yang digunakan dalam penelitian ini adalah **Wholesale Customers
+Dataset** yang diperoleh dari **Machine Learning Repository**. Dataset
+ini berisi informasi terkait pola pembelian pelanggan dari sebuah
+distributor grosir, yang mencakup berbagai kategori produk.
+
+Dataset terdiri dari **440 observasi** (pelanggan) dan **8 variabel**,
+yang meliputi **dua variabel kategorik** yaitu Channel dan Region, serta
+**enam variabel numerik** yang merepresentasikan jumlah pengeluaran
+tahunan pelanggan pada masing-masing kategori produk, yaitu: Fresh,
+Milk, Grocery, Frozen, Detergents_Paper, dan Delicassen.
+
+Variabel Channel menunjukkan jenis pelanggan (misalnya Horeca atau
+Retail), sedangkan Region menunjukkan wilayah geografis pelanggan.
+Sementara itu, keenam variabel numerik mencerminkan intensitas pembelian
+pada masing-masing kategori produk dalam satuan moneter.
+
+```{r}
+# Input Data
+data_whole <- read.csv("C:/Users/dals/OneDrive - untirta.ac.id/KULIAH/Sem 6/Unsupervised/Data/Wholesale customers data.csv", sep = ",")
+```
+
+```{r}
+# Eksplorasi Data
+head(data_whole)
+str(data_whole)
+summary(data_whole)
+colSums(is.na(data_whole))
+```
+
+Berdasarkan hasil eksplorasi data, dataset wholesale terdiri dari 440
+observasi dengan mayoritas variabel berupa data numerik yang
+merepresentasikan jumlah pembelian, serta dua variabel kategorik yaitu
+Channel dan Region. Seluruh variabel tidak memiliki missing value
+sehingga data siap digunakan untuk analisis.
+
+Secara deskriptif, terlihat bahwa hampir semua variabel memiliki rentang
+nilai yang sangat lebar dan nilai rata-rata yang lebih besar dari
+median, yang menunjukkan distribusi miring ke kanan (*right-skewed*)
+serta adanya outlier. Hal ini mengindikasikan adanya perbedaan
+signifikan antar pelanggan, di mana sebagian kecil pelanggan memiliki
+tingkat pembelian yang sangat tinggi.
+
+# Model 1
+
+## Jarak Numerik (Euclidean)
+
+### Penyelesaian
+
+```{r}
+# Package Yang Digunakan
+library(corrplot)
+```
+
+```{r}
+# Memilih Variabel Numerik
+data_numerik <- data_whole[, 3:8]
+```
+
+```{r}
+# Eksplorasi Data
+summary(data_numerik)
+boxplot(data_numerik, main = "Boxplot Wholesale sebelum scaled")
+```
+
+Berdasarkan boxplot sebelum dilakukan standarisasi, terlihat bahwa
+seluruh variabel memiliki rentang nilai yang sangat berbeda. Variabel
+Fresh dan Grocery memiliki skala yang jauh lebih besar dibandingkan
+dengan variabel lainnya, sedangkan variabel Frozen dan Delicassen
+memiliki rentang yang lebih kecil. Selain itu, terlihat banyak tiik yang
+berada di luar (*outlier*) pada hampir semua variabel, yang menunjukkan
+adanya nilai ekstrem dalam data. Kondisi ini mengidentifikasikan bahwa
+data bersifat tidak simetris (*skewed*) dan memiliki sebaran yang tidak
+merata.
+
+Banyaknya outlier yang terdeteksi menunjukkan bahwa terdapat beberapa
+pelanggan dengan pola pembelian yang sangat berbeda dibandingkan
+mayoritas. Hal ini dapat menjadi indikasi adanya segmen pelanggan
+khusus.
+
+```{r}
+# Standarisasi Data
+data_scaled <- scale(data_numerik)
+```
+
+```{r}
+# Eksplorasi Data Setelah Standarisasi
+boxplot(data_scaled, main = "Boxplot wholescale setelah scaled")
+```
+
+Setelah dilakukan standarisasi menggunakan Z-score, terlihat bahwa
+seluruh variabel telah berada pada skala yang sama, yaitu dengan
+rata-rata mendekati nol dan penyebaran yang relatif seragam. Hal ini
+menunjukkan bahwa proses standarisasi berhasil menghilangkan perbedaan
+skala antar variabel. Namun, *outlier* masih tetap terlihat pada
+beberapa variabel yang menunjukkan bahwa standarisasi tidak
+menghilangkan nilai yang ekstrem, melainkan menyesuaikan skala data.
+
+```{r}
+# Melihat Outlier
+Q1 <- apply(data_numerik, 2, quantile, 0.25)
+Q3 <- apply(data_numerik, 2, quantile, 0.75)
+IQR <- Q3 - Q1
+lower <- Q1 - 1.5 * IQR
+upper <- Q3 + 1.5 * IQR
+
+outlier <- data_numerik < lower | data_numerik > upper
+colSums(outlier)
+```
+
+Berdasarkan hasil *outlier* menggunakan metode IQR, terlihat bahwa
+seluruh variabel memiliki outlier dengan jumlah yang bervariasi.
+Variabel Fresh memiliki jumlah outlier tertinggi yaitu sebanyak 150
+observasi, diikuti oleh Grocery sebanyak 100 observasi dan Milk sebanyak
+68 observasi. Sementara itu, variabel Delicassen memiliki jumlah outlier
+paling sedikit yaitu 7 observasi. Banyaknya *outlier* pada beberapa
+variabel menunjukkan bahwa terdapat sejumlah pelanggan dengan pola
+pembelian yang sangat berbeda dibandingkan mayoritas. Hal ini
+mengindikasikan adanya heterogenitas yang tinggi dalam data.
+
+```{r}
+# Melihat Multikolinear
+cor(data_scaled)
+round(cor(data_scaled), 2)
+corrplot(cor(data_scaled), method = "color")
+```
+
+Berdasarkan hasil analisis korelasi, terdapat beberapa pasangan variabel
+yang memiliki hubungan yang cukup kuat. Variabel Grocery dan
+Detergents_Paper menunjukkan korelasi yang sangat tinggi sebesar 0.92,
+yang mengindikasikan bahwa kedua variabel tersebut memiliki pola yang
+sangat mirip. Selain itu, variabel Milk juga memiliki korelasi yang
+cukup kuat dengan Grocery (0.73) dan Detergents_Paper (0.66). Hal ini
+menunjukkan bahwa pelanggan yang memiliki pengeluaran tinggi pada satu
+kategori cenderung memiliki pengeluaran tinggi pada kategori lainnya.
+
+```{r}
+# Jarak Euclidean
+euclid <- dist(data_scaled, method = "euclidean")
+summary(euclid)
+```
+
+Berdasarkan hasil perhitungan Euclidean Distance, nilai jarak antar
+observasi memiliki rentang yang cukup lebar, dengan nilai minimum
+sebesar 0.044 dan maksimum mencapai 21.244. Hal ini menunjukkan bahwa
+terdapat pasangan pelanggan yang sangat mirip, namun juga ada yang
+sangat berbeda. Nilai median sebesar 1.976 dan rata-rata sebesar 2.582
+menunjukkan bahwa secara umum jarak antar pelanggan berada pada tingkat
+sedang, sehingga tidak semua data memiliki kemiripan yang tinggi. Selain
+itu, adanya nilai maksimum yang jauh lebih besar dibandingkan kuartil
+ketiga (3.024) mengindikasikan adanya beberapa observasi yang sangat
+berbeda dari yang lain.
+
+```{r}
+# Konversi Ke Dalam Bentuk Matrix
+matrix_euclid <- as.matrix(euclid)
+matrix_euclid[1:5,1:5]
+```
+
+Berdasarkan hasil matrix jarak, terlihat bahwa nilai diagonal bernilai
+nol yang menunjukkan jarak suatu observasi dengan dirinya sendiri, serta
+matriks bersifat simetris. Beberapa nilai jarak yang kecil antar
+observasi menunjukkan adanya kemiripan karakteristik pelanggan, yang
+menjadi indikasi awal terbentuknya kelompok atau cluster dalam data.
+
+```{r}
+# Visualisasi Matrix
+heatmap(matrix_euclid[1:50, 1:50])
+```
+
+Berdasarkan visualisasi heatmap, terlihat adanya variasi intensitas
+warna yang cukup beragam, yang menunjukkan bahwa jarak antar observasi
+tidak seragam. Area dengan warna lebih gelap merepresentasikan pasangan
+pelanggan dengan jarak yang kecil (lebih mirip), sedangkan warna yang
+lebih terang menunjukkan jarak yang besar (lebih berbeda). Terlihat pula
+beberapa blok atau pola tertentu, yang mengindikasikan adanya kelompok
+pelanggan dengan karakteristik yang relatif mirip satu sama lain.
+
+```{r}
+# Mencari Pasangan Yang Paling Dekat
+terdekat <- which(matrix_euclid == min(matrix_euclid[matrix_euclid > 0]), arr.ind = TRUE)
+print(terdekat)
+```
+
+Berdasarkan hasil perhitungan, pasangan observasi yang paling dekat
+adalah data ke-98 dan ke-99, dengan nilai jarak yang sangat kecil. Hal
+ini menunjukkan bahwa kedua pelanggan tersebut memiliki karakteristik
+pembelian yang sangat mirip dibandingkan pasangan lainnya.
+
+```{r}
+# Distribusi Jarak
+hist(euclid, main = "Distribusi Jarak Euclidean", col = "navy")
+mean(euclid)
+```
+
+Berdasarkan hasil histogram, distribusi condong ke arah kanan yang
+menunjukkan bahwa sebagian besar pelanggan memiliki jarak yang rekatif
+kecil hingga sedang (pola belanja pelanggan tidak terlalu berbeda jauh).
+Namun, adanya nilai jarak yang besar oada bagian ekor kanan menunjukkan
+terdapat beberapa pelanggan dengan pola pembelian yang sangat berbeda .
+
+Selain itu, nilai rata-rata jarak sebesar 2.582 menunjukkan bahwa secara
+umum tingkat kemiripan antar pelanggan berada pada kategori sedang.
+Artinya, sebagian besar pelanggan tidak terlalu mirip satu sama lain,
+namun juga tidak sepenuhnya berbeda.
+
+```{r}
+# Visualisasi PCA
+pca <- prcomp(data_scaled)
+plot(pca$x[, 1:2], col = "navy", main = "Visualisasi PCA")
+```
+
+Berdasarkan visualisasi PCA, terlihat bahwa sebagian besar data
+terkonsentrasi di area pusat, sementara beberapa titik tersebar cukup
+jauh dari pusat distribusi. Hal ini menunjukkan bahwa mayoritas
+pelanggan memiliki pola pembelian yang relatif mirip, namun terdapat
+beberapa pelanggan dengan karakteristik yang sangat berbeda (outlier
+atau segmen khusus). Selain itu, tidak terlihat pemisahan cluster yang
+sangat tegas, melainkan pola yang cenderung menyebar dan sedikit tumpang
+tindih.
+
+### Kesimpulan Model 1
+
+Secara keseluruhan, perhitungan jarak Euclidean menunjukkan bahwa data
+memiliki tingkat keragaman yang cukup tinggi, ditandai dengan rentang
+jarak yang lebar serta adanya beberapa observasi yang sangat mirip dan
+sangat berbeda. Kondisi ini mengindikasikan bahwa data memiliki struktur
+yang tidak homogen dan berpotensi membentuk beberapa kelompok. Oleh
+karena itu, hasil ini menjadi dasar yang kuat untuk melanjutkan analisis
+ke metode clustering guna mengidentifikasi kelompok pelanggan secara
+lebih jelas.
+
+# Model 2
+
+## Partitioning (K-Means)
+
+### Penyelesaian
+
+```{r}
+# Package Yang Digunakan
+library(cluster)
+library(factoextra)
+```
+
+```{r}
+# Data
+kmeans_whole <- data_scaled
+```
+
+```{r}
+# Menentukan Jumlah Klaster
+# Metode Elbow
+wss <- numeric(10)
+
+for (k in 1:10) {
+  kmeans_model <- kmeans(kmeans_whole, centers = k, nstart = 25)
+  wss[k] <- kmeans_model$tot.withinss
+}
+
+plot(1:10, wss, type="b", pch=19,
+     xlab="Jumlah Cluster (k)",
+     ylab="Total Within Sum of Squares",
+     main="Metode Elbow")
+abline(v = 2, col = "red", lty = 2)
+text(2, wss[2], labels = "k = 2", pos = 4, col = "red")
+
+# Metode Silhoutte
+sil_width <- numeric(10)
+d <- dist(kmeans_whole)
+
+for (k in 2:10) {
+  km <- kmeans(kmeans_whole, centers = k, nstart = 25)
+  ss <- silhouette(km$cluster, d)
+  sil_width[k] <- mean(ss[, 3])
+}
+
+plot(2:10, sil_width[2:10], type="b", pch=19,
+     xlab="Jumlah Cluster",
+     ylab="Silhouette Score",
+     main="Silhouette Method")
+
+k_terbaik <- which.max(sil_width)
+print(k_terbaik)
+```
+
+Berdasarkan hasil metode elbow, terlihat penurunan Total Within Sum of
+Squares (WSS) yang tajam hingga k = 2, lalu melandai setelahnya. Ini
+menunjukkan bahwa k = 2 adalah titik optimal karena penambahan cluster
+tidak lagi memberikan peningkatan signifikan.
+
+Berdasarkan hasil metode Silhouette, nilai silhouette tertinggi berada
+pada k = 2, yang berarti pemisahan antar cluster paling baik dan
+struktur cluster paling jelas pada jumlah tersebut.
+
+Kedua metode menunjukkan bahwa jumlah cluster optimal adalah k = 2,
+sehingga data dapat dibagi menjadi dua kelompok utama dengan
+karakteristik yang berbeda.
+
+```{r}
+# K-Means
+set.seed(165)
+k_means <- kmeans(kmeans_whole, centers = 2, nstart = 25)
+```
+
+```{r}
+# Hasil Clustering
+k_means$cluster
+table(k_means$cluster)
+prop.table(table(k_means$cluster))
+```
+
+Berdasarkan hasil K-Means clustering, data terbagi menjadi dua cluster
+dengan distribusi yang tidak seimbang. Cluster 1 terdiri dari 41
+observasi (9.3%), sedangkan Cluster 2 mendominasi dengan 399 observasi
+(90.7%). Hal ini menunjukkan bahwa sebagian besar pelanggan memiliki
+karakteristik yang mirip, sementara sebagian kecil lainnya memiliki pola
+yang berbeda. Perbedaan ini mengindikasikan adanya kelompok minoritas
+dengan karakteristik khusus, yang kemungkinan dipengaruhi oleh
+keberadaan outlier dalam data.
+
+```{r}
+# Sentroid
+k_means$centers
+```
+
+Berdasarkan nilai sentroid, terlihat perbedaan karakteristik yang cukup
+jelas antara kedua cluster. Cluster 1 memiliki nilai yang jauh lebih
+tinggi pada variabel Milk (2.07), Grocery (2.24), dan Detergents_Paper
+(2.26), serta cukup tinggi pada Delicassen (0.80). Hal ini menunjukkan
+bahwa cluster ini merepresentasikan pelanggan dengan tingkat pembelian
+yang tinggi, khususnya pada produk kebutuhan rumah tangga. Sebaliknya,
+Cluster 2 memiliki nilai negatif pada hampir semua variabel, yang
+menunjukkan bahwa pengeluaran pelanggan pada cluster ini cenderung
+berada di bawah rata-rata.
+
+CLuster 1 dapat diinterpretasikan sebagai kelompok pelanggan dengan
+intensitas belanja tinggi (high spender), sedangkan Cluster 2 merupakan
+kelompok pelanggan dengan pola pembelian yang lebih rendah dan lebih
+umum (regular customer).
+
+```{r}
+# Evalusi Model
+k_means$tot.withinss
+k_means$totss
+k_means$betweenss
+k_means$betweenss / k_means$totss
+```
+
+Berdasarkan hasil evaluasi K-Means Clustering, diperoleh nilai
+`between sum of squares` sebesar 684.65 dari total variasi data sebesar
+2634, sehingga proporsi variasi yang dapat dijelaskan oleh model
+clustering adalah sekitar 25.99%. Hal ini menunjukkan bahwa model
+K-Means mampu menjelaskan sebagian variasi data, namun masih terdapat
+variasi yang cukup besar di dalam cluster.
+
+```{r}
+# Stabilitas Hasil K-Means
+set.seed(321)
+k1 <- kmeans(kmeans_whole, centers = 2, nstart = 25)
+
+set.seed(123)
+k2 <- kmeans(kmeans_whole, centers = 2, nstart = 25)
+
+table(k1$cluster, k2$cluster)
+```
+
+Berdasarkan uji stabilitas pada K-Means Clustering dengan dua nilai seed
+yang berbeda, diperoleh hasil bahwa seluruh anggota cluster tetap
+konsisten, hanya terjadi pertukaran label antara cluster 1 dan 2.
+
+```{r}
+# Skor Silhoutte
+sill_score <- silhouette(k_means$cluster, d)
+mean(sill_score[, 3])
+```
+
+Berdasarkan hasil Silhouette Score, diperoleh nilai rata-rata silhouette
+sebesar 0.59. Nilai ini menunjukkan bahwa kualitas clustering tergolong
+cukup baik, di mana sebagian besar data sudah berada pada cluster yang
+tepat dan memiliki pemisahan yang cukup jelas antar cluster.
+
+```{r}
+# PCA
+pca <- prcomp(kmeans_whole)
+
+plot(pca$x[,1:2],
+     col = k_means$cluster,
+     pch = 19,
+     xlab = "PC1",
+     ylab = "PC2",
+     main = "Visualisasi Cluster K-Means")
+```
+
+Berdasarkan visualisasi PCA, terlihat bahwa data terbagi menjadi dua
+kelompok utama sesuai dengan hasil K-Means (k = 2). Sebagian besar
+observasi terkonsentrasi dalam satu cluster yang mendominasi area pusat,
+sementara cluster lainnya terdiri dari sejumlah kecil titik yang
+tersebar lebih jauh dari pusat. Hal ini menunjukkan bahwa mayoritas
+pelanggan memiliki pola pembelian yang relatif seragam, sedangkan
+sebagian kecil lainnya memiliki karakteristik yang berbeda secara
+signifikan.
+
+```{r}
+# Visualisasi
+fviz_cluster(k_means, data = kmeans_whole)
+```
+
+Berdasarkan visualisasi fviz_cluster, terlihat bahwa dua cluster yang
+terbentuk memiliki batas yang relatif tegas dengan sedikit tumpang
+tindih. Cluster besar mendominasi sebagian besar area dan
+merepresentasikan pelanggan dengan pola pembelian yang cenderung normal
+atau di bawah rata-rata, sedangkan cluster kecil berada pada area yang
+lebih terpisah dan menunjukkan pelanggan dengan nilai pembelian yang
+lebih tinggi.
+
+### Kesimpulan Model 2
+
+Berdasarkan hasil analisis, model K-Means dengan k = 2 mampu membagi
+data menjadi dua kelompok utama, yaitu pelanggan dengan pembelian tinggi
+(minoritas) dan pelanggan dengan pembelian rendah/normal (mayoritas).
+Meskipun kualitas clustering tergolong cukup baik (silhouette 0.59),
+distribusi cluster yang tidak seimbang menunjukkan bahwa model ini
+dipengaruhi oleh outlier dan kurang mampu menangkap kompleksitas data.
+
+# Model 3
+
+## Model Based Clustering (GMM)
+
+### Penyelesaian
+
+```{r}
+# Package
+library(mclust)
+library(factoextra)
+```
+
+```{r}
+# Data
+data_gmm <- data_scaled
+```
+
+```{r}
+# Menentukan Jumlah Klaster
+model_gmm <- Mclust(data_gmm)
+summary(model_gmm)
+model_gmm$G
+```
+
+Berdasarkan hasilGaussian Mixture Model (GMM), diperoleh jumlah cluster
+optimal sebanyak 7 cluster dengan model terbaik bertipe VVE
+(ellipsoidal, equal orientation). Hal ini menunjukkan bahwa data
+memiliki struktur yang lebih kompleks dan tidak dapat direpresentasikan
+hanya dengan sedikit kelompok seperti pada K-Means.
+
+Distribusi anggota tiap cluster relatif bervariasi, dengan jumlah
+terbesar pada cluster 4 (88 observasi) dan paling kecil pada cluster 6
+(18 observasi). Meskipun terdapat perbedaan ukuran cluster,
+distribusinya lebih tersebar dibandingkan hasil K-Means, yang sebelumnya
+sangat didominasi oleh satu cluster.
+
+```{r}
+# Jenis Model
+model_gmm$modelName
+```
+
+```{r}
+# Visualisasi
+plot(model_gmm, what = "BIC")
+```
+
+Berdasarkan hasil plot BIC menunjukkan bahwa nilai BIC meningkat
+(semakin mendekati nol) seiring bertambahnya jumlah komponen, yang
+menandakan model semakin baik dalam menyesuaikan data. Namun,
+peningkatan tersebut mulai melambat setelah sekitar 6–7 komponen,
+sehingga perbaikan model tidak lagi signifikan.
+
+Selain itu, terlihat bahwa beberapa tipe model kovarians seperti VVV dan
+VEV cenderung memberikan nilai BIC tertinggi dibandingkan model lainnya,
+yang berarti model dengan fleksibilitas kovarians penuh lebih mampu
+menangkap struktur data. Puncak nilai BIC terlihat berada di sekitar 7
+komponen, sehingga dapat disimpulkan bahwa jumlah cluster optimal berada
+di kisaran tersebut dengan model kovarians yang lebih kompleks.
+
+```{r}
+# Hasil Klaster
+model_gmm$classification
+table(model_gmm$classification)
+prop.table(table(model_gmm$classification))
+```
+
+Berdasarkan hasil GMM, data terbagi ke dalam 7 cluster dengan distribusi
+yang relatif lebih merata dibandingkan K-Means. Cluster 4 memiliki
+proporsi terbesar (20%), sedangkan cluster 6 merupakan yang paling kecil
+(4.1%).
+
+Sebagian besar cluster memiliki proporsi yang cukup seimbang, berada
+pada kisaran 11%–20%, yang menunjukkan bahwa data tidak lagi didominasi
+oleh satu kelompok besar, melainkan tersebar ke beberapa kelompok dengan
+ukuran yang lebih proporsional. Hal tersebut mengindikasikan bahwa GMM
+mampu menangkap struktur data yang lebih kompleks dan membentuk
+segmentasi yang lebih detail.
+
+```{r}
+# Parameter
+model_gmm$parameters
+```
+
+Berdasarkan parameter GMM, settiap cluster memiliki karakteristik yang
+berbeda. Cluster ke-6 menunjukkan rata-rata tertinggi pada hampir semua
+variabel, sehingga merepresentasikan pelanggan dengan tingkat pembelian
+sangat tinggi, sedangkan cluster lain seperti cluster ke-2 dan ke-7
+cenderung berada di bawah rata-rata.
+
+Perbedaan nilai mean ini menunjukkan bahwa GMM mampu membedakan pola
+pengeluaran pelanggan secara lebih spesifik. Selain itu, model VVE
+menunjukkan bahwa cluster berbentuk elips dengan orientasi yang sama,
+sehingga lebih fleksibel dalam menangkap struktur data.
+
+```{r}
+# Evaluasi Model
+model_gmm$bic
+model_gmm$loglik
+```
+
+Berdasarkan hasil evaluasi model, nilai log-likelihood sebesar -1262.255
+dan BIC sebesar -3163.621 menunjukkan model yang dipilih merupakan yang
+paling optimal di antara kandidat model lainnya, sehingga hasil
+clustering ini dapat dianggap cukup baik dalam merepresentasikan
+struktur data.
+
+```{r}
+# Probabilitas
+model_gmm$z
+```
+
+Probabilitas posterior menunjukkan peluang setiap observasi masuk ke
+masing-masing klaster (1–7). Dari hasil tersebut, terlihat bahwa
+sebagian besar observasi memiliki probabilitas yang sangat tinggi
+(mendekati 1) pada satu klaster tertentu dan sangat kecil pada klaster
+lain.
+
+```{r}
+# Visualisasi Klaster
+plot(model_gmm, what = "classification")
+```
+
+Berdasarkan hasil visualisasi pairplot, menunjukkan bahwa model GMM
+mampu mengidentifikasi beberapa kelompok pelanggan dengan pola pembelian
+yang berbeda. Terlihat bahwa variabel Milk, Grocery, dan
+Detergents_Paper memiliki korelasi positif yang kuat, sehingga menjadi
+faktor utama dalam membedakan cluster—kelompok dengan nilai tinggi pada
+ketiga variabel ini cenderung merepresentasikan pelanggan seperti
+retailer atau toko kebutuhan sehari-hari. Sementara itu, variabel Fresh
+dan Frozen memiliki pola yang lebih menyebar dan tidak terlalu
+berkorelasi, yang mengindikasikan segmen pelanggan dengan kebutuhan
+spesifik seperti bisnis makanan. Beberapa cluster juga terlihat saling
+tumpang tindih, terutama pada nilai yang rendah, yang menunjukkan adanya
+kemiripan karakteristik antar pelanggan serta mencerminkan sifat
+probabilistik dari GMM.
+
+```{r}
+# PCA
+pca <- prcomp(data_gmm)
+
+plot(pca$x[, 1:2],
+     col = model_gmm$classification,
+     pch = 19,
+     xlab = "PC1",
+     ylab = "PC2",
+     main = "Visualisasi GMM")
+
+fviz_cluster(list(data = data_gmm, cluster = model_gmm$classification))
+```
+
+Berdasarkan hasil visualisasi PCA, visualisasi ini menunjukkan pemisahan
+cluster dalam ruang 2D (kemungkinan hasil reduksi seperti PCA), di mana
+terlihat adanya dua kelompok utama yang cukup terpisah. Titik berwarna
+hijau tampak berkumpul rapat di satu area, menandakan cluster yang
+homogen dengan karakteristik yang mirip antar anggotanya. Sementara itu,
+titik berwarna ungu lebih menyebar dan terdapat beberapa titik yang jauh
+dari pusat kelompok (outlier), yang menunjukkan adanya variasi yang
+lebih tinggi dalam cluster tersebut. Pemisahan antar cluster yang cukup
+jelas mengindikasikan bahwa model berhasil menangkap perbedaan pola
+data, meskipun masih terdapat sedikit penyebaran yang mencerminkan
+keberagaman dalam masing-masing kelompok.
+
+Berdasarkan visualisasi cluster plot hasil Gaussian Mixture Model (GMM),
+terlihat bahwa data pelanggan terbagi ke dalam beberapa kelompok dengan
+pola penyebaran yang cukup kompleks. Sebagian besar observasi
+terkonsentrasi pada area tertentu (terutama di sisi kanan plot), yang
+menunjukkan adanya kelompok pelanggan utama dengan karakteristik
+pembelian yang relatif mirip. Di sisi lain, terdapat beberapa titik yang
+tersebar jauh dari pusat distribusi (di bagian kiri atau atas), yang
+mengindikasikan adanya segmen pelanggan khusus dengan pola pembelian
+yang lebih ekstrem, baik dalam jumlah yang sangat tinggi maupun sangat
+rendah. Selain itu, terlihat adanya tumpang tindih (overlapping) antar
+beberapa cluster, khususnya di area tengah. Hal ini menunjukkan bahwa
+batas antar kelompok tidak bersifat tegas, melainkan bersifat
+probabilistik, di mana satu pelanggan dapat memiliki kemiripan dengan
+lebih dari satu cluster.
+
+### Kesimpulan Model 3
+
+Secara keseluruhan, model Gaussian Mixture Model dengan 7 cluster mampu
+mengelompokkan data secara optimal, yang didukung oleh nilai BIC dan
+log-likelihood yang diperoleh. Visualisasi dan probabilitas keanggotaan
+menunjukkan bahwa sebagian besar observasi memiliki kecenderungan kuat
+pada satu cluster, meskipun tetap terdapat beberapa overlap yang
+mencerminkan sifat probabilistik model. Segmentasi yang terbentuk
+memperlihatkan perbedaan pola pembelian yang jelas, terutama pada
+variabel Milk, Grocery, dan Detergents_Paper, sehingga hasil ini dapat
+digunakan sebagai dasar dalam memahami karakteristik pelanggan dan
+pengambilan keputusan yang lebih terarah.
+
+# Model 4
+
+## Fuzzy Clustering (Fuzzy C-Means)
+
+### Penyelesaian
+
+```{r}
+# Package
+library(e1071)
+library(cluster)
+library(factoextra)
+```
+
+```{r}
+# Data
+data_fuzzy <- data_numerik
+```
+
+```{r}
+# Transformasi Log
+fuzzy_log <- log1p(data_fuzzy)
+```
+
+```{r}
+# Eksplorasi Data
+str(fuzzy_log)
+summary(fuzzy_log)
+cor(fuzzy_log)
+boxplot(fuzzy_log, main = "Boxplot Wholesale cmeans")
+```
+
+Berdasarkan hasil tersebut, data terdiri dari 440 observasi dengan 6
+variabel numerik yang telah ditransformasi log, sehingga distribusi
+menjadi lebih stabil dan pengaruh outlier berkurang. Nilai rata-rata dan
+median yang relatif dekat menunjukkan data sudah cukup seimbang,
+meskipun variasi masih terlihat pada beberapa variabel seperti Fresh,
+Milk, dan Grocery.
+
+Selain itu, masih terdapat outlier pada beberapa variabel seperti Fresh,
+Frozen, dan Delicassen, yang mengindikasikan adanya pelanggan dengan
+pola pembelian yang berbeda dari mayoritas. Hal ini menunjukkan data
+cukup heterogen dan mendukung penggunaan metode clustering.
+
+Berdasarkan hasil Boxplot, menunjukkan bahwa seluruh variabel masih
+memiliki variasi yang cukup besar meskipun sudah ditransformasi log.
+Variabel Fresh, Milk, dan Grocery memiliki median lebih tinggi, yang
+menandakan nilai pembelian cenderung lebih besar, sedangkan
+Detergents_Paper dan Delicassen relatif lebih rendah. Selain itu, masih
+terdapat outlier pada beberapa variabel seperti Fresh, Frozen, dan
+Delicassen, yang mengindikasikan adanya pelanggan dengan pola pembelian
+yang berbeda dari mayoritas. Hal ini menunjukkan data cukup heterogen
+dan mendukung penggunaan metode clustering.
+
+```{r}
+# Menentukan Jumlah Cluster
+fviz_nbclust(fuzzy_log, kmeans, method = "wss")
+fviz_nbclust(fuzzy_log, kmeans, method = "silhouette")
+```
+
+```{r}
+fpc_val <- numeric(9)
+
+for(i in 1:9) {
+  k <- i + 1
+  model <- cmeans(fuzzy_log, centers = k, m = 2)
+  fpc_val[i] <- sum(model$membership^2)/nrow(fuzzy_log)
+}
+
+plot(2:10, fpc_val, type = "b",
+     xlab = "Jumlah Cluster",
+     ylab = "FPC",
+     main = "Fuzzy Partition Coefficient")
+```
+
+Berdasarkan hasil grafik `Fuzzy Partition Coefficient` (FPC), terlihat
+bahwa nilai FPC tertinggi berada pada jumlah cluster 2, kemudian terus
+menurun seiring bertambahnya jumlah cluster. Hal ini menunjukkan bahwa
+pembagian data paling optimal terjadi saat jumlah cluster sedikit,
+karena nilai FPC yang lebih tinggi menandakan keanggotaan yang lebih
+jelas.
+
+Hasil ini juga konsisten dengan metode Elbow dan Silhouette, yang
+sama-sama menunjukkan bahwa jumlah cluster optimal adalah 2. Pada metode
+Elbow terlihat adanya titik “siku” pada cluster ke-2, sedangkan nilai
+Silhouette tertinggi juga diperoleh pada jumlah cluster tersebut.
+
+```{r}
+# Cmeans
+set.seed(165)
+model_fcm <- cmeans(
+  fuzzy_log,
+  centers = 2,
+  m = 2,
+  iter.max = 100
+)
+```
+
+```{r}
+# Membership
+head(model_fcm$membership)
+```
+
+Berdasarkan hasil membership, menunjukkan bahwa setiap observasi
+memiliki derajat keanggotaan pada kedua cluster (tidak mutlak seperti
+K-Means). Misalnya, observasi pertama memiliki peluang lebih besar masuk
+ke cluster 2 (0.788), sedangkan observasi keempat lebih dominan di
+cluster 1 (0.783). Menariknya, ada juga observasi seperti data ke-5 yang
+memiliki nilai cukup seimbang (0.40 vs 0.60), yang berarti
+karakteristiknya berada di antara dua cluster (overlap).
+
+```{r}
+# Cluster
+cluster_fcm <- apply(model_fcm$membership, 1, which.max)
+table(cluster_fcm)
+```
+
+Berdasarkan proses `defuzzification` (mengambil nilai keanggotaan
+terbesar), diperoleh distribusi anggota cluster yaitu 246 data pada
+cluster 1 dan 194 data pada cluster 2. Ini menunjukkan pembagian yang
+relatif seimbang, meskipun cluster 1 sedikit lebih dominan. Secara
+keseluruhan, hasil ini menegaskan keunggulan fuzzy clustering dalam
+menangkap ketidakjelasan batas antar cluster, di mana beberapa data
+tidak sepenuhnya “milik” satu kelompok saja, melainkan memiliki
+karakteristik campuran.
+
+```{r}
+# Centroid
+model_fcm$centers
+```
+
+Berdasarkan nilai centroid, menunjukkan karakteristik masing-masing
+cluster. Cluster 1 memiliki nilai relatif lebih tinggi pada Fresh dan
+Frozen, namun lebih rendah pada Milk, Grocery, dan Detergents_Paper,
+sehingga dapat diinterpretasikan sebagai kelompok pelanggan yang lebih
+fokus pada produk segar. Sebaliknya, cluster 2 memiliki nilai lebih
+tinggi pada Milk, Grocery, dan Detergents_Paper, yang mengindikasikan
+pola pembelian kebutuhan rumah tangga atau grosir yang lebih intens.
+
+```{r}
+# Evaluasi Model
+fpc <- sum(model_fcm$membership^2) / nrow(fuzzy_log)
+print(fpc)
+```
+
+Berdasarkan hasil tersebut, nilai FPC sebesar 0.652 menunjukkan bahwa
+struktur cluster cukup baik, dengan tingkat kejelasan keanggotaan yang
+moderat (tidak terlalu kabur, namun juga tidak sepenuhnya tegas).
+
+```{r}
+# Skor Silhouette
+sil_skor <- silhouette(cluster_fcm, dist(fuzzy_log))
+mean(sil_skor[, 3])
+```
+
+Berdasarkan hasil tersebut, nilai silhouette sebesar 0.296
+mengindikasikan bahwa pemisahan antar cluster masih tergolong lemah
+hingga sedang, sehingga meskipun dua cluster sudah cukup
+merepresentasikan pola data, masih terdapat tumpang tindih antar
+kelompok.
+
+```{r}
+# Visualisasi
+fviz_cluster(list(data = fuzzy_log, cluster = cluster_fcm),
+             geom = "point",
+             ellipse.type = "convex",
+             main = "Cluster Fuzzy C-Means")
+```
+
+Berdasarkan hasil visualisasi tersebut, data terbagi menjadi dua cluster
+yang cukup jelas pada ruang dimensi hasil reduksi (Dim1 dan Dim2).
+Cluster 1 (merah) cenderung berada di sisi kiri dengan nilai Dim1 yang
+lebih rendah, sedangkan cluster 2 (biru) berada di sisi kanan dengan
+nilai Dim1 yang lebih tinggi. Hal ini menandakan bahwa pemisahan utama
+antar cluster didorong oleh Dim1 yang menjelaskan proporsi variasi
+terbesar (44.1%). Meskipun demikian, terlihat adanya sedikit tumpang
+tindih di area tengah, yang menunjukkan bahwa beberapa data memiliki
+karakteristik campuran antar cluster.
+
+```{r}
+aggregate(data_fuzzy, 
+          by = list(Cluster = cluster_fcm), 
+          mean)
+```
+
+Hasil agregasi rata-rata menunjukkan perbedaan karakteristik yang cukup
+jelas antar cluster. Cluster 1 memiliki nilai rata-rata yang jauh lebih
+tinggi pada variabel Fresh dan Frozen, namun sangat rendah pada
+Detergents_Paper, sehingga dapat diinterpretasikan sebagai kelompok
+pelanggan yang lebih fokus pada produk segar dan beku (misalnya restoran
+atau usaha makanan).
+
+Sebaliknya, cluster 2 memiliki nilai yang jauh lebih tinggi pada Milk,
+Grocery, dan terutama Detergents_Paper, yang mengindikasikan pola
+pembelian kebutuhan rumah tangga atau grosir dalam jumlah besar. Selain
+itu, nilai Delicassen juga lebih tinggi pada cluster 2, memperkuat bahwa
+cluster ini cenderung memiliki variasi pembelian produk konsumsi yang
+lebih luas.
+
+```{r}
+summary(model_fcm$membership)
+model_fcm$membership[1,]
+```
+
+Berdasarkan hasil tersebut, nilai membership menunjukkan bahwa derajat
+keanggotaan data cukup bervariasi pada kedua cluster. Nilai minimum yang
+mendekati 0 menandakan adanya data yang sangat jelas masuk ke satu
+cluster, sedangkan nilai maksimum yang mendekati 1 menunjukkan dominasi
+kuat pada cluster tertentu. Namun, nilai median (sekitar 0.57 untuk
+cluster 1 dan 0.43 untuk cluster 2) serta rata-rata yang relatif
+mendekati 0.5 mengindikasikan bahwa banyak data memiliki keanggotaan
+yang tidak terlalu tegas, sehingga terjadi overlap antar cluster.
+
+Observasi pertama memiliki membership sebesar 0.21 pada cluster 1 dan
+0.79 pada cluster 2, yang berarti lebih condong ke cluster 2 namun masih
+memiliki sebagian karakteristik cluster 1. Hal ini memperkuat bahwa
+struktur data tidak sepenuhnya terpisah jelas.
+
+### Kesimpulan Model 4
+
+Secara keseluruhan, model Fuzzy C-Means berhasil membentuk dua cluster
+utama dengan karakteristik berbeda, yaitu kelompok produk segar dan
+kelompok kebutuhan grosir/ritel. Pemilihan jumlah cluster sebanyak dua
+didukung oleh metode evaluasi seperti elbow, silhouette, dan FPC.
+
+Nilai FPC (\~0.65) menunjukkan kualitas cluster yang cukup baik,
+sementara nilai silhouette (\~0.29) mengindikasikan masih adanya overlap
+antar cluster. Hal ini sesuai dengan konsep fuzzy clustering, di mana
+data dapat memiliki keanggotaan pada lebih dari satu cluster, sehingga
+model ini dinilai tepat untuk merepresentasikan struktur data yang tidak
+terpisah secara tegas.
+
+# Model Terbaik
+
+## Perbandingan Setiap Model
+
+```{r}
+# Package
+library(knitr)
+```
+
+```{r}
+# Perbandingan Model
+# Model 1 (Euclidean)
+euclid_mean <- mean(euclid)
+euclid_min  <- min(euclid)
+euclid_max  <- max(euclid)
+
+# Model 2 (K-Means)
+kmeans_k <- length(unique(k_means$cluster))
+kmeans_sil <- mean(sill_score[, 3])
+kmeans_balance <- prop.table(table(k_means$cluster))
+kmeans_balance_sd <- sd(kmeans_balance)
+
+# Modela 3 (GMM)
+gmm_k <- model_gmm$G
+gmm_bic <- model_gmm$bic
+gmm_loglik <- model_gmm$loglik
+gmm_balance <- prop.table(table(model_gmm$classification))
+gmm_balance_sd <- sd(gmm_balance)
+
+# Model 4 (Cmeans)
+fcm_k <- length(unique(cluster_fcm))
+fcm_sil <- mean(sil_skor[, 3])
+fcm_fpc <- sum(model_fcm$membership^2) / nrow(fuzzy_log)
+fcm_balance <- prop.table(table(cluster_fcm))
+fcm_balance_sd <- sd(fcm_balance)
+
+# Gabungkan
+perbandingan_model <- data.frame(
+  Model = c("Euclidean Distance", "K-Means", "GMM", "Fuzzy C-Means"),
+  Jumlah_Cluster = c(NA, kmeans_k, gmm_k, fcm_k),
+  Silhouette = c(NA, kmeans_sil, NA, fcm_sil),
+  FPC = c(NA, NA, NA, fcm_fpc),
+  LogLikelihood = c(NA, NA, gmm_loglik, NA),
+  Rata_Rata_Jarak = c(euclid_mean, NA, NA, NA),
+  Min_Jarak = c(euclid_min, NA, NA, NA),
+  Max_Jarak = c(euclid_max, NA, NA, NA),
+  Keseimbangan_Cluster_SD = c(NA, kmeans_balance_sd, gmm_balance_sd, fcm_balance_sd)
+)
+
+print(perbandingan_model)
+```
+
+```{r}
+# Distribusi Cluster
+list(
+  KMeans = kmeans_balance,
+  GMM = gmm_balance,
+  FCM = fcm_balance
+)
+```
+
+```{r}
+kable(perbandingan_model, digits = 3,
+      caption = "Perbandingan Model Clustering")
+```
+
+Berdasarkan tabel perbandingan, terlihat bahwa setiap model memiliki
+karakteristik performa yang berbeda dalam mengelompokkan data. Metode
+Euclidean Distance menunjukkan bahwa data memiliki variasi yang cukup
+tinggi dengan rata-rata jarak sebesar 2.582 serta rentang yang lebar
+(0.044–21.244), namun metode ini hanya bersifat eksploratif dan belum
+menghasilkan cluster.
+
+Model K-Means menghasilkan 2 cluster dengan nilai silhouette tertinggi
+(0.591), yang menunjukkan pemisahan cluster cukup baik. Namun, nilai
+keseimbangan cluster yang tinggi (SD = 0.575) serta distribusi yang
+sangat timpang (±9% vs 91%) mengindikasikan bahwa model ini kurang
+stabil dan sangat dipengaruhi oleh outlier.
+
+Model GMM menghasilkan 7 cluster dengan nilai log-likelihood sebesar
+-1262.255 serta nilai keseimbangan cluster paling rendah (SD = 0.052),
+yang menunjukkan distribusi cluster paling merata. Hal ini
+mengindikasikan bahwa GMM mampu menangkap struktur data yang lebih
+kompleks dan menghasilkan segmentasi yang lebih representatif.
+
+Sementara itu, Fuzzy C-Means menghasilkan 2 cluster dengan nilai FPC
+sebesar 0.652 yang menunjukkan kualitas keanggotaan cukup baik, serta
+distribusi cluster yang relatif seimbang (SD = 0.084). Namun, nilai
+silhouette yang rendah (0.296) menunjukkan bahwa pemisahan antar cluster
+masih kurang tegas.
+
+## Kesimpulan
+
+Berdasarkan hasil perbandingan seluruh model, Gaussian Mixture Model
+(GMM) dipilih sebagai model terbaik karena mampu merepresentasikan
+struktur data secara paling optimal. Hal ini ditunjukkan oleh
+kemampuannya membentuk cluster yang lebih banyak (7 cluster) dan lebih
+seimbang (SD = 0.052), sehingga mampu menangkap heterogenitas data yang
+tinggi. Berbeda dengan K-Means yang meskipun memiliki nilai silhouette
+tinggi namun menghasilkan cluster yang sangat tidak seimbang, serta
+Fuzzy C-Means yang lebih fleksibel namun memiliki pemisahan cluster yang
+lemah, GMM menawarkan keseimbangan antara fleksibilitas dan ketepatan
+segmentasi. Dengan demikian, GMM dinilai paling mampu menggambarkan pola
+kompleks pelanggan secara lebih detail, representatif, dan realistis.
