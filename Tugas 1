@@ -1,0 +1,256 @@
+---
+title: "Tugas Unsupervised Learning"
+author: "Dinda Dwi Anugrah Pertiwi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: united
+    highlight: haddock
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: true
+    code_folding: hide
+    df_print: paged
+    css: styles.css
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+# Jarak
+
+Jarak *(distance*) atau ketidakmiripan (*dissimilarity*) adalah ukuran kuantitatif yang menggambarkan seberapa berbeda dua objek atau titik data satu sama lain. Kebalikan dari kemiripan (*similarity*), yang mengukur seberapa "dekat" atau "serupa" dua objek. Tujuannya adalah mengelompokkan objek-objek yang memiliki jarak dekat (mirip) dan memisahkan objek-objek yang memiliki jarak jauh (berbeda).
+
+# Jarak Numeric
+
+Jarak numerik (*numeric distance*) merupakan ukuran kuantitatif yang digunakan untuk menghitung tingkat perbedaan atau kedekatan antara dua objek yang memiliki atribut berbentuk angka. Dalam konteks unsupervised learning, khususnya pada metode clustering, jarak numerik berperan penting dalam menentukan kemiripan antar data berdasarkan nilai variabel numerik seperti umur, pendapatan, tinggi badan, jumlah pembelian, dan sebagainya.
+
+Secara umum, semakin kecil nilai jarak antara dua objek, maka semakin mirip karakteristik keduanya. Sebaliknya, semakin besar jaraknya, semakin berbeda objek tersebut.
+
+## Jenis-jenis jarak Numeric
+
+### Jarak Euclidean
+
+Euclidean distance adalah perhitungan untuk mengukur jarak dua titik dalam euclidean space yang mempelajari hubungan antara sudut dan jarak (Derisma, Firdaus, & Yusya, 2016). Dalam matematika euclidean distance digunakan untuk mengukur dua titik dalam satu dimensi yang memberikan hasil seperti perhitungan pythagoras(Mustofa & Suasana, 2018).
+
+Misal, jika memiliki dua objek (atau titik data), sebut saja p dan q. Masing-masing objek ini memiliki n karakteristik (variabel). Jadi, dapat ditulis p sebagai $(p_1,p_2,...,p_n)$ dan q sebagai $(q_1,q_2,...,q_n)$
+
+$$d(p, q) = \sqrt{(p_1 - q_1)^2 + (p_2 - q_2)^2 + \dots + (p_n - q_n)^2} = \sqrt{\sum_{i=1}^{n} (p_i - q_i)^2}$$
+
+```{r}
+# Contoh dua titik
+p <- c(2, 4, 6)
+q <- c(1, 3, 5)
+
+# Euclidean Distance
+euclid <- sqrt(sum((p - q)^2))
+euclid
+```
+
+### Jarak Manhattan
+
+Jarak Manhattan, sering juga disebut Jarak City Block, Jarak L1 , atau Jarak Taksi (Taxi-cab), adalah cara lain untuk mengukur jarak antara dua titik dalam ruang multi-dimensi. Berbeda dengan Jarak Euclidean yang mengambil "jalan pintas" lurus, Jarak Manhattan mengukur jarak seolah-olah berjalan di sepanjang grid perkotaan, di mana hanya bisa bergerak secara vertikal atau horizontal (tidak bisa diagonal).
+
+$$d(p, q) = |p_1 - q_1| + |p_2 - q_2| + \dots + |p_n - q_n| = \sum_{i=1}^{n} |p_i - q_i|$$
+
+```{r}
+# Manhattan Distance
+manhattan <- sum(abs(p - q))
+manhattan
+```
+
+### Jarak Minkowski
+
+Jarak Minkowski merupakan generalisasi dari jarak Euclidian dan Manhattan.
+
+$$d(p,q) = \left( \sum_{i=1}^{n} |p_i - q_i|^h \right)^{\frac{1}{h}}$$
+
+Parameter kunci adalah “h”, terkadang disebut p atau $\lambda$, yang merupakan bilangan real $\geq 1$
+- Jika $h=1$, maka akan menjadi jarak Manhattan.
+- Jika $h=2$, maka akan menjadi jarak Euclidian.
+- Jika $h = \infty$, maka akan menjadi jarak Chebyshev
+
+```{r}
+# Minkowski Distance (h = 3)
+h <- 3
+minkowski <- (sum(abs(p - q)^h))^(1/h)
+minkowski
+```
+
+### Jarak Chebyshev
+
+Jarak Chebyshev, sering juga disebut Jarak Papan Catur (Chessboard Distance) atau Jarak L $\infty$ , adalah metrik jarak yang mengukur "langkah" terbesar yang diperlukan untuk menyamakan dua titik di sepanjang salah satu dimensi.
+
+$d(p,q) = max (|p_i - q_i|)$
+
+```{r}
+# Chebyshev Distance
+chebyshev <- max(abs(p - q))
+chebyshev
+```
+
+### Jarak Mahalanobis
+
+Jarak Mahalanobis mengukur jarak suatu titik dari "pusat" distribusi data (biasanya mean) dalam satuan standar deviasi yang telah disesuaikan dengan struktur kovariansi antar variabel. Jarak Mahalanobis (biasanya dinyatakan sebagai kuadratnya, $D^2$) antara suatu titik data $x = (x_1 ,x_2 ,...,x_n)$ dan pusat distribusi $(mean)$ $\mu = (\mu_1 ,\mu_2 ,...,\mu_n)$ dihitung menggunakan invers dari matriks kovariansi $(S_−1)$.
+
+$D^2(x,\mu) = (x - \mu)^T S^-1 (x - \mu)$
+
+```{r}
+# Mahalanobis Distance
+data <- matrix(c(
+  2,4,6,
+  1,3,8,
+  3,5,7,
+  4,9,5
+), ncol=3, byrow=TRUE)
+
+p <- c(2,4,6)
+
+mean_vec <- colMeans(data)
+cov_mat <- cov(data)
+
+det(cov_mat)   # pastikan bukan 0
+
+mahalanobis(p, mean_vec, cov_mat)
+```
+
+# Jarak Kategorical
+
+Jarak categorical adalah ukuran dissimilarity (ketidakmiripan) yang digunakan untuk menghitung perbedaan antara dua objek yang memiliki atribut berbentuk kategori (nominal atau ordinal). Berbeda dengan variabel numerik, variabel kategorikal tidak memiliki makna kuantitatif, sehingga operasi matematika seperti pengurangan tidak dapat langsung diterapkan.
+
+Contoh variabel kategorikal:
+
+-   Jenis kelamin (L/P)
+-   Status pernikahan (Menikah/Belum)
+-   Warna (Merah/Biru/Hijau)
+-   Program studi (Statistika/Informatika/Akuntansi)
+
+## Jenis-jenis jarak Kategorical
+
+### Jarak Hamming
+
+Jarak Hamming adalah metrik yang digunakan untuk mengukur perbedaan antara dua string (atau vektor) dengan panjang yang sama. Metrik ini menghitung jumlah posisi di mana kedua string tersebut memiliki simbol yang berbeda. Misal memiliki dua objek, A dan B, masing-masing dengan n fitur kategorikal atau biner. Jarak Hamming (dH) antara A dan B adalah jumlah fitur (i) di mana nilai Ai tidak sama dengan Bi.
+
+$$d_H(A, B) = \sum_{i=1}^{n} \delta(A_i, B_i)$$
+
+```{r}
+# Contoh data kategorikal (binary)
+A <- c(1,0,1,1,0)
+B <- c(1,1,1,0,0)
+
+# Hamming Distance
+hamming <- sum(A != B)
+hamming
+```
+
+### Jarak Jaccard
+
+Indeks Jaccard adalah ukuran kemiripan, dan Jarak Jaccard adalah kebalikannya (1−Indeks Jaccard). Jarak Jaccard mengabaikan kecocokan 0-0 (M-00 ). Ini membuatnya sangat cocok untuk data biner asimetris, di mana kehadiran suatu fitur (1) jauh lebih signifikan daripada ketiadaannya (0).
+
+$$d_J(A, B) = 1 - J(A, B) = \frac{M_{01} + M_{10}}{M_{11} + M_{01} + M_{10}}$$
+
+```{r}
+# Jaccard Distance
+M11 <- sum(A == 1 & B == 1)
+M10 <- sum(A == 1 & B == 0)
+M01 <- sum(A == 0 & B == 1)
+
+jaccard <- (M01 + M10) / (M11 + M01 + M10)
+jaccard
+```
+
+### Matching Coefficient
+
+Jarak Simple Matching Coefficient (SMC) sebenarnya adalah ukuran kemiripan, namun seringkali diubah menjadi ukuran jarak (ketidakmiripan) dengan menghitung 1−SMC. Simple Matching Coefficient (SMC) mengukur proporsi fitur (variabel) yang cocok (baik sama-sama 1 maupun sama-sama 0) antara dua objek.
+
+$$SMC = \frac{\text{Jumlah variabel yang cocok}}{\text{Total jumlah variabel}} = \frac{M_{11} + M_{00}}{M_{11} + M_{01} + M_{10} + M_{00}}$$
+
+```{r}
+# Simple Matching Coefficient Distance
+M00 <- sum(A == 0 & B == 0)
+SMC <- (M11 + M00) / length(A)
+distance_smc <- 1 - SMC
+distance_smc
+```
+
+### Jarak Berbasis Rank
+
+Pemberian Peringkat (Ranking): Setiap kategori dalam variabel ordinal diberi nilai numerik sesuai urutannya. Misalnya: Buruk=1, Cukup=2, Baik=3, Sangat Baik=4. Normalisasi Peringkat: Karena variabel yang berbeda mungkin memiliki jumlah tingkatan yang berbeda (misal, satu 3 tingkat, satu lagi 5 tingkat), peringkat perlu dinormalisasi agar sebanding. Rumus normalisasi yang umum adalah mengubah peringkat ke rentang [0, 1]:
+
+$$z_{if} = \frac{r_{if} - 1}{M_f - 1}$$
+
+Setelah semua variabel ordinal dinormalisasi, bisa menghitung jarak 
+antar objek menggunakan metrik seperti Jarak Manhattan.
+
+```{r}
+# Ranking contoh
+A <- c(1,2,3,4)
+B <- c(2,2,3,3)
+
+# Normalisasi ke 0-1
+M <- 4
+A_norm <- (A - 1)/(M - 1)
+B_norm <- (B - 1)/(M - 1)
+
+# Manhattan distance
+sum(abs(A_norm - B_norm))
+```
+
+# Jarak Mixed Variable
+
+Mixed variable adalah data yang terdiri dari kombinasi: - Variabel numerik (contoh: umur, pendapatan, jumlah transaksi) - Variabel categorical (contoh: jenis kelamin, status pernikahan) - Bisa juga ada binary atau ordinal
+
+## Jenis-jenis Mixed Variable
+
+### Gower
+
+Jarak Gower adalah metrik yang sangat berguna dan fleksibel karena dirancang khusus untuk menghitung jarak atau ketidakmiripan antara objek-objek yang memiliki campuran tipe data (numerik/kontinu, nominal, dan ordinal). Jarak Gower $(d_Gower)$ antara dua objek (p dan q) dengan n variabel dihitung sebagai berikut :
+
+$$d(p, q) = \frac{\sum_{f=1}^{n} w_f \cdot d_f(p_f, q_f)}{\sum_{f=1}^{n} w_f}$$
+
+wf: Bobot (weight) yang diberikan untuk variabel ke-f. Biasanya, wf diatur ke 1 untuk semua variabel, artinya semua dianggap sama pentingnya. wf bisa juga diatur ke 0 jika kita ingin mengabaikan variabel tertentu atau jika ada missing value pada perbandingan tersebut.
+
+$d_f(p_f, q_f)$ : Jarak atau ketidakmiripan antara objek p dan q pada 
+variabel ke-f, Perhitungannya berbeda tergantung tipe data.
+
+Nilai Gower berada di rentang 0 – 1
+
+0 = sangat mirip
+
+1 = sangat tidak mirip
+
+```{r}
+library(cluster)
+
+# Contoh data campuran
+data_mixed <- data.frame(
+  Umur = c(25, 30, 22),
+  Pendapatan = c(5, 7, 4),
+  Gender = factor(c("P","L","P")),
+  Status = factor(c("Single","Menikah","Single"))
+)
+
+# Hitung Gower distance
+gower_dist <- daisy(data_mixed, metric = "gower")
+gower_dist
+
+# Contoh dari file
+data2 <- data.frame(
+  tinggi = c(170, 180, 165),
+  pekerjaan = factor("Karyawan", "Wiraswasta", "Karyawan"),
+  kepuasan = c(0.5, 0.0, 1.0),
+  mobil = c(TRUE, FALSE, TRUE)
+)
+
+gower_distt <- daisy(data2, metric = "gower")
+gower_distt
+```
