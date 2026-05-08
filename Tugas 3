@@ -1,0 +1,170 @@
+---
+title: "Tugas Unsupervised Learning"
+author: "Dinda Dwi Anugrah Pertiwi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: espresso
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: false
+    code_folding: hide
+    df_print: paged
+    css: styles.css
+    self_contained: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{=html}
+<style> /* Judul utama */ h1 { color: #2C3E50; border-bottom: 4px solid #18BC9C; padding-bottom: 8px; margin-top: 20px; } /* Subjudul */ h2 { color: #18BC9C; margin-top: 25px; } /* Sub-subjudul */ h3 { color: #34495E; } /* Kotak interpretasi */ .interpretasi { background-color: #E8F6F3; padding: 15px; border-left: 6px solid #18BC9C; border-radius: 5px; margin-top: 15px; margin-bottom: 15px; } /* Kotak catatan */ .catatan { background-color: #FEF9E7; padding: 15px; border-left: 6px solid #F4D03F; border-radius: 5px; margin-top: 15px; margin-bottom: 15px; } /* mempercantik tabel */ table { border-collapse: collapse; } table th { background-color: #18BC9C; color: white; } table td, table th { padding: 8px; } </style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+# Model Based Clustering
+
+## Pendahuluan
+
+***Model based clustering*** merupakan metode pengelompokan data yang
+menggunakan pendekatan model statistik. Metode ini mengasumsikan bahwa
+data berasal dari beberapa kluster, di mana setiap kluster memiliki
+pusat (*mean*) dan pola penyebaran tertentu yang digambarkan melalui
+matriks kovarians. Pusat kluster direpresentasikan oleh vektor nilai
+rata-rata dari setiap variabel, sedangkan matriks kovarians menunjukkan
+variasi serta bentuk penyebaran data dalam kluster.
+
+### GMM
+
+Pendekatan ini umumnya menggunakan ***Gaussian Mixture Model*** (GMM),
+yaitu model probabilistik yang mengasumsikan bahwa setiap titik data
+memiliki peluang tertentu untuk menjadi anggota suatu kluster. Dengan
+demikian, keanggotaan suatu data tidak bersifat mutlak pada satu kluster
+saja, melainkan dinyatakan dalam bentuk probabilitas. Hal ini
+memungkinkan *model based clustering* untuk menangani kondisi di mana
+batas antar kluster tidak selalu jelas atau saling tumpang tindih.
+
+Dibandingkan dengan metode klusterisasi lain seperti k-means, pendekatan
+berbasis model memiliki beberapa keunggulan.
+
+-   GMM memungkinkan titik data dimasukkan ke dalam kluster untuk
+    mengakui bahwa batas-batas antar kluster tidak selalu terdefinisi
+    dengan baik.
+
+-   GMM mampu menentukan jumlah kluster secara otomatis melalui proses
+    inferensi, berbeda dengan metode kmeans yang mengharuskan penentuan
+    jumlah kluster terlebih dahulu.
+
+-   Berkat penggunaan matriks kovariat, GMM cukup fleksibel untuk
+    menangani kumpulan kluster dengan berbagai bentuk dan orientasi.
+
+### Algoritma
+
+Algoritma:
+
+-   Inisialisasi: menginisialisasi parameter seperti rata-rata (*mean*)
+    atau matriks kovarians dengan menentukan jumlah kluster (*k*).
+
+-   Langkah Ekspektasi (*E*): menetapkan setiap titik data ke dalam
+    kluster berdasarkan parameter saat ini, dengan mempertimbangkan
+    probabilitas titik tersebut menjadi anggota setiap kluster.
+
+-   Langkah Maksimisasasi (*M*): memperbarui parameter (*mean* dan
+    *kovarians*) berdasarkan penugasan kluster saat ini
+
+-   Mengulangi langkah 2 dan 3: proses ini diiterasikan hingga mencapai
+    konvergensi (perubahan parameter sudah sangat kecil)
+
+## Implementasi
+
+```{r}
+library(mclust)
+library(ggplot2)
+library(factoextra)
+```
+
+### Data Multishape
+
+```{r}
+
+data_gmm <- factoextra::multishapes
+multishapes <- multishapes[1:800,]
+model_gmm <- Mclust(multishapes, G = 3)
+summary(model_gmm)
+
+model_cluster <- predict(model_gmm)$classification
+ggplot(data = multishapes, aes(x=x, y=y)) +
+  geom_point(aes(col = as.factor(model_cluster))) +
+  theme_bw() +
+  labs(col = "Cluster")
+```
+
+*Model Gaussian finite mixture*, khususnya Mclust dengan 3 komponen,
+diterapkan pada dataset yang terdiri dari 800 observasi dengan
+menggunakan algoritma *Expectation Maximization* (EM).
+
+-   Nilai log-likelihood, yang merupakan ukuran kesesuaian model
+    terhadap data, adalah sekitar -1425.21.
+-   Nilai BIC (*Bayesian Information Criterion*) dan ICL (*Integrated
+    Completed Likelihood*) masing-masing sebesar -2944.005 dan -3011.78.
+    Kedua metrik ini digunakan untuk mengevaluasi kualitas model, di
+    mana nilai yang lebih besar menunjukkan kesesuaian model yang lebih
+    baik.
+-   Model ini memiliki 14 derajat kebebasan, dan tabel klusterisasi
+    menunjukkan bahwa data terbagi menjadi tiga kluster, yaitu 331
+    observasi pada kluster 1, 69 observasi pada kluster 2, dan 400
+    observasi pada kluster 3.
+
+Secara keseluruhan, model ini menunjukkan bahwa data dapat
+direpresentasikan dengan tiga kluster yang berbeda, di mana sebagian
+besar observasi berada pada kluster 1 dan kluster 3, sementara kluster 2
+memiliki jumlah observasi yang lebih sedikit dibandingkan kluster
+lainnya.
+
+### Data Iris
+
+```{r}
+data_gmm <- datasets::iris
+data_iris <- iris[,1:4]
+model_gmm <- Mclust(data_iris, G = 3)
+summary(model_gmm)
+
+model_cluster <- predict(model_gmm)$classification
+ggplot(data = data_iris, aes(x= Petal.Length, y= Petal.Width)) +
+  geom_point(aes(col = as.factor(model_cluster))) +
+  theme_bw() +
+  labs(col = "Cluster")
+```
+
+*Model Gaussian finite mixture*, khususnya Mclust VEV dengan 3 komponen,
+diterapkan pada dataset yang terdiri dari 150 observasi menggunakan
+algoritma *Expectation Maximization* (EM).
+
+-   Nilai log-likelihood, yang merupakan ukuran kesesuaian model
+    terhadap data, adalah sekitar -186.074.
+-   Nilai BIC (*Bayesian Information Criterion*) dan ICL (*Integrated
+    Completed Likelihood*) masing-masing sebesar -562.5522 dan
+    -566.4673. Kedua metrik ini digunakan untuk mengevaluasi kualitas
+    model, di mana nilai yang lebih besar menunjukkan kesesuaian model
+    yang lebih baik dalam merepresentasikan struktur data.
+-   Model ini memiliki 38 derajat kebebasan, dan tabel klusterisasi
+    menunjukkan bahwa data terbagi menjadi tiga kluster, yaitu 50
+    observasi pada kluster 1, 45 observasi pada kluster 2, dan 55
+    observasi pada kluster 3.
+
+Secara keseluruhan, hasil ini menunjukkan bahwa data dapat
+direpresentasikan oleh tiga kluster yang berbeda, dengan jumlah
+observasi yang relatif seimbang pada masing-masing klaster. Model VEV
+(ellipsoidal dengan bentuk yang sama) menunjukkan bahwa setiap kluster
+memiliki orientasi yang berbeda namun mempertahankan bentuk yang serupa.
