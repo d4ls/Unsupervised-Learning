@@ -1,0 +1,224 @@
+---
+title: "Tugas Unsupervised Learning"
+author: "Dinda Dwi Anugrah Pertiwi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: espresso
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: false
+    code_folding: hide
+    df_print: paged
+    css: styles.css
+    self_contained: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{=html}
+<style> /* Judul utama */ h1 { color: #2C3E50; border-bottom: 4px solid #18BC9C; padding-bottom: 8px; margin-top: 20px; } /* Subjudul */ h2 { color: #18BC9C; margin-top: 25px; } /* Sub-subjudul */ h3 { color: #34495E; } /* Kotak interpretasi */ .interpretasi { background-color: #E8F6F3; padding: 15px; border-left: 6px solid #18BC9C; border-radius: 5px; margin-top: 15px; margin-bottom: 15px; } /* Kotak catatan */ .catatan { background-color: #FEF9E7; padding: 15px; border-left: 6px solid #F4D03F; border-radius: 5px; margin-top: 15px; margin-bottom: 15px; } /* mempercantik tabel */ table { border-collapse: collapse; } table th { background-color: #18BC9C; color: white; } table td, table th { padding: 8px; } </style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+# FUZZY CLUSTERING
+
+## Pendahuluan
+
+***Fuzzy Clustering*** merupakan suatu metode clustering yang hampir
+mirip seperti k-means clustering. Karena metode clustering ini mirip
+dengan k-means clustering, ada yang menyebut metode ini fuzzy k-means
+clustering. Fuzzy c-means merupakan salah satu jenis soft clustering
+dimana dalam mengelompokan suatu data, setiap data bisa dimiliki lebih
+dari satu cluster. Contohnya sebuah tomat bisa dikelompokkan ke warna
+merah ***atau*** warna hijau jika dalam hard clustering, namun tomat
+bisa dikelompokkan ke warna merah ***dan*** hijau dalam fuzzy
+clustering.
+
+-   Menggunakan skor keanggotaan antara 0 dan 1 (misalkan dengan angka
+    dari 0 sampai 1, tomat warna merah 0.5 dan tomat warna hijau 0.5)
+-   Menangani batas kluster yang tumpang tindih atau tidak jelas
+-   Lebih fleksibel daripada metode pengelompokan kaku
+-   Berguna ketika titik data tidak sesuai dengan satu kelompok tunggal
+
+![](images/Screenshot%202026-03-31%20025124.png)
+
+## Cara Kerja
+
+Pengelompokan fuzzy menetapkan derajat keanggotaan untuk setiap titik
+data pada setiap klaster dan memperbarui nilai-nilai ini melalui proses
+iteratif.
+
+***Langkah 1 : Inisialisasi Nilai Keanggotaan Secara Acak*** Setiap
+titik data diberi skor keanggotaan acak untuk semua klaster. Suatu titik
+dapat sebagian termasuk dalam beberapa klaster. Misalnya, untuk 2
+klaster dan 4 titik data, matriks keanggotaan awal $\γ$ mungkin terlihat
+seperti:
+
+![](images/Screenshot%202026-03-31%20031521.png)
+
+***Langkah 2 : Menghitung Sentroid Klaster*** sentroid dihitung sebagai
+rata-rata tertimbang, di mana bobotnya adalah nilai keanggotaan yang
+dipangkatkan dengan parameter fuzzy m:
+
+$V_{ij} = \frac{\sum_{k=1}^{n} \gamma_{ik}^{m} \cdot x_{kj}}{\sum_{k=1}^{n} \gamma_{ik}^{m}}$
+
+$\gamma_{ik}=$ nilai keanggotaan titik k dalam kluster i $m =$ parameter
+fuzzy (biasanya bernilai 2) $x_{kj} =$ nilai atribut j untuk titik k
+
+***Langkah 3: Hitung Jarak Antara Titik Data dan Sentroid*** Hitung
+jarak Euclidean antara setiap titik dan setiap centroid untuk menentukan
+kedekatan, yang akan digunakan untuk memperbarui keanggotaan.
+
+$D_{11} = \sqrt{(1 - 1.568)^2 + (3 - 4.051)^2} = 1.2$
+
+$D_{12} = \sqrt{(1 - 5.35)^2 + (3 - 8.215)^2} = 6.79$
+
+Jarak semua titik lainnya dihitung dari kedua titik pusat.
+
+***Langkah 4: Perbarui Nilai Keanggotaan*** Nilai keanggotaan diperbarui
+secara berbanding terbalik dengan jarak ini. Titik-titik yang lebih
+dekat ke centroid mendapatkan keanggotaan yang lebih tinggi.
+
+Keanggotaan yang diperbarui $\gamma_{ik}$ untuk titik K di klaster i
+adalah:
+
+$\gamma_{ik} = \left( \sum_{j=1}^{n} \left(\frac{d_{ki}^2}{d_{kj}^2} \right)^{\frac{1}{m-1}}\right)^{-1}$
+
+***Langkah 5 :Ulangi hingga Konvergensi*** Langkah 2–4 diulangi hingga
+nilai keanggotaan stabil, artinya tidak ada perubahan signifikan dari
+satu iterasi ke iterasi berikutnya. Ini menunjukkan bahwa pengelompokan
+telah mencapai keadaan optimal.
+
+## Implementasi Fuzzy di R
+
+### Package
+
+```{r}
+library(e1071)
+```
+
+### Menyiapkan Data
+
+```{r}
+set.seed(010)
+data("USArrests")
+data_fuzzy <- USArrests
+```
+
+### Eksplorasi Data
+
+```{r}
+head(data_fuzzy)
+summary(data_fuzzy)
+```
+
+### Standarisasi Data
+
+```{r}
+data_scaled <- scale(data_fuzzy)
+```
+
+### Menjalankan Fuzzy C-Means
+
+```{r}
+fz_result <- cmeans(data_scaled, centers = 3, m = 2)
+```
+
+centers : jumlah klaster
+
+m : parameter fuzzy
+
+### Hasil
+
+#### Pusat Klaster
+
+```{r}
+fz_result$centers
+```
+
+Nilai negatif = di bawah rata-rata
+
+Nilai positif = di atas rata-rata
+
+-   **Cluster 1 (Low Crime Area)**
+
+Semua variabel negatif besar
+
+Murder, Assault, Rape → rendah UrbanPop → juga relatif rendah
+
+-\> wilayah dengan tingkat kriminalitas rendah (aman)
+
+-   **Cluster 2 (Moderate Area)**
+
+Nilai mendekati 0
+
+UrbanPop agak tinggi
+
+-\> kriminalitas sedang, cenderung lebih urban
+
+-   **Cluster 3 (High Crime Area)**
+
+Murder, Assault, Rape → tinggi (positif besar)
+
+-\> wilayah dengan tingkat kriminalitas tinggi
+
+#### Derajat Keanggotaan
+
+```{r}
+head(fz_result$membership)
+```
+
+Alabama: 0.11 (11%) ke Cluster 1
+
+0.23 (23%) ke Cluster 2
+
+0.65 (65%) ke cluster 3 -\> Sangat kuat di Cluster 3 (High Crime)
+
+#### Klaster Dominan Tiap Data
+
+```{r}
+fz_result$cluster
+```
+
+```{r}
+hasil <- data.frame(
+  State = rownames(data_fuzzy),
+  Cluster = fz_result$cluster
+)
+
+head(hasil)
+```
+
+#### Visualisasi
+
+```{r}
+plot(data_scaled[,1], data_scaled[,2],
+     col = fz_result$cluster,
+     pch = 19,
+     xlab = "Murder", ylab = "Assault",
+     main = "Fuzzy C-Means Clustering (USArrests)")
+```
+
+Hasil analisis menggunakan metode Fuzzy C-Means menunjukkan bahwa data
+USArrests terbagi menjadi tiga kelompok utama berdasarkan tingkat
+kriminalitas. Cluster pertama merepresentasikan wilayah dengan tingkat
+kriminalitas rendah, cluster kedua menunjukkan tingkat kriminalitas
+sedang dengan karakteristik urban yang cukup tinggi, dan cluster ketiga
+menggambarkan wilayah dengan tingkat kriminalitas tinggi. Nilai derajat
+keanggotaan menunjukkan bahwa beberapa negara bagian memiliki
+kecenderungan kuat terhadap satu cluster tertentu, sementara sebagian
+lainnya berada pada kondisi transisi, yang mengindikasikan adanya
+karakteristik yang tumpang tindih antar cluster.
